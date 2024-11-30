@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, Suspense } from 'react';
 
 const SearchParamsContext = createContext<{
   query: string;
@@ -15,11 +15,7 @@ export function useSearchParamsContext() {
   return useContext(SearchParamsContext);
 }
 
-export default function SearchParamsProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function SearchParamsContent({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
@@ -28,5 +24,17 @@ export default function SearchParamsProvider({
     <SearchParamsContext.Provider value={{ query, page }}>
       {children}
     </SearchParamsContext.Provider>
+  );
+}
+
+export default function SearchParamsProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SearchParamsContent>{children}</SearchParamsContent>
+    </Suspense>
   );
 }

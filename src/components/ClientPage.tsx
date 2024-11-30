@@ -6,7 +6,6 @@ import BookResults from '@/components/BookResults';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import BookSearchBar from '@/components/BookSearchBar';
 import Image from 'next/image';
-import { Suspense } from 'react';
 import SearchParamsProvider, {
   useSearchParamsContext,
 } from './SearchParamsProvider';
@@ -46,13 +45,7 @@ function SearchContent() {
 }
 
 function MainContent() {
-  return (
-    <SearchParamsProvider>
-      <Suspense fallback={<LoadingSpinner />}>
-        <SearchContent />
-      </Suspense>
-    </SearchParamsProvider>
-  );
+  return <SearchContent />;
 }
 
 export default function ClientPage(): JSX.Element {
@@ -76,7 +69,9 @@ export default function ClientPage(): JSX.Element {
   return (
     <>
       <main className="flex-1 min-h-screen overflow-y-auto">
-        <MainContent />
+        <SearchParamsProvider>
+          <MainContent />
+        </SearchParamsProvider>
       </main>
       <Footer />
     </>
