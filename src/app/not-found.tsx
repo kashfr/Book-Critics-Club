@@ -1,6 +1,8 @@
-'use client';
+import dynamic from 'next/dynamic';
 
-import ClientNotFound from '@/components/ClientNotFound';
+const ClientNotFound = dynamic(() => import('../components/ClientNotFound'), {
+  ssr: false,
+});
 
 export default function NotFound() {
   return <ClientNotFound />;

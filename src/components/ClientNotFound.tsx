@@ -3,6 +3,14 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 
+function LoadingSpinner() {
+  return (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500" />
+    </div>
+  );
+}
+
 function NotFoundContent() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
@@ -22,13 +30,7 @@ function NotFoundContent() {
 
 export default function ClientNotFound() {
   return (
-    <Suspense
-      fallback={
-        <div className="w-full h-full flex items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingSpinner />}>
       <NotFoundContent />
     </Suspense>
   );

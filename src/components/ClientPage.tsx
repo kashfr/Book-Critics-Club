@@ -11,6 +11,14 @@ import { Suspense } from 'react';
 
 const words = `Welcome, bookworm! Please sign in.`;
 
+function LoadingSpinner() {
+  return (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500" />
+    </div>
+  );
+}
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -39,20 +47,18 @@ function SearchContent() {
 
 function MainContent() {
   return (
-    <Suspense
-      fallback={
-        <div className="w-full h-full flex items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingSpinner />}>
       <SearchContent />
     </Suspense>
   );
 }
 
 export default function ClientPage(): JSX.Element {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+
+  if (status === 'loading') {
+    return <LoadingSpinner />;
+  }
 
   if (!session) {
     return (
