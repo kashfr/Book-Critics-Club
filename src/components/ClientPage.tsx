@@ -9,6 +9,7 @@ import Image from 'next/image';
 import SearchParamsProvider, {
   useSearchParamsContext,
 } from './SearchParamsProvider';
+import { Suspense } from 'react';
 
 const words = `Welcome, bookworm! Please sign in.`;
 
@@ -45,7 +46,13 @@ function SearchContent() {
 }
 
 function MainContent() {
-  return <SearchContent />;
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <SearchParamsProvider>
+        <SearchContent />
+      </SearchParamsProvider>
+    </Suspense>
+  );
 }
 
 export default function ClientPage(): JSX.Element {
@@ -69,9 +76,7 @@ export default function ClientPage(): JSX.Element {
   return (
     <>
       <main className="flex-1 min-h-screen overflow-y-auto">
-        <SearchParamsProvider>
-          <MainContent />
-        </SearchParamsProvider>
+        <MainContent />
       </main>
       <Footer />
     </>
