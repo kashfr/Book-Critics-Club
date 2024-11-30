@@ -7,15 +7,39 @@ import { useSearchParams } from 'next/navigation';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import BookSearchBar from '@/components/BookSearchBar';
 import Image from 'next/image';
+import { Suspense } from 'react';
 
-const words = `Welcome, bookworm! Please sign in.
-`;
+const words = `Welcome, bookworm! Please sign in.`;
 
-export default function Home(): JSX.Element {
-  const { data: session } = useSession();
+function MainContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
+
+  return (
+    <>
+      {!query && (
+        <div className="w-full max-w-md mx-auto pt-32">
+          <div className="flex flex-col items-center">
+            <Image
+              src="/images/book-critics-club-logo.png"
+              alt="Book Critics Club Logo"
+              width={75}
+              height={75}
+              priority
+              className="mb-2"
+            />
+            <BookSearchBar position="center" />
+          </div>
+        </div>
+      )}
+      {query && <BookResults query={query} initialPage={page} />}
+    </>
+  );
+}
+
+export default function Home(): JSX.Element {
+  const { data: session } = useSession();
 
   if (!session) {
     return (
@@ -31,22 +55,9 @@ export default function Home(): JSX.Element {
   return (
     <>
       <main className="flex-1 min-h-screen overflow-y-auto">
-        {!query && (
-          <div className="w-full max-w-md mx-auto pt-32">
-            <div className="flex flex-col items-center">
-              <Image
-                src="/images/book-critics-club-logo.png"
-                alt="Book Critics Club Logo"
-                width={75}
-                height={75}
-                priority
-                className="mb-2"
-              />
-              <BookSearchBar position="center" />
-            </div>
-          </div>
-        )}
-        {query && <BookResults query={query} initialPage={page} />}
+        <Suspense fallback={<div>Loading...</div>}>
+          <MainContent />
+        </Suspense>
       </main>
       <Footer />
     </>
