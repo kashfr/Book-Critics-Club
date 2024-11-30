@@ -3,11 +3,13 @@
 import { useSession } from 'next-auth/react';
 import Footer from '@/components/Footer';
 import BookResults from '@/components/BookResults';
-import { useSearchParams } from 'next/navigation';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import BookSearchBar from '@/components/BookSearchBar';
 import Image from 'next/image';
 import { Suspense } from 'react';
+import SearchParamsProvider, {
+  useSearchParamsContext,
+} from './SearchParamsProvider';
 
 const words = `Welcome, bookworm! Please sign in.`;
 
@@ -20,9 +22,7 @@ function LoadingSpinner() {
 }
 
 function SearchContent() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('q') || '';
-  const page = parseInt(searchParams.get('page') || '1', 10);
+  const { query, page } = useSearchParamsContext();
 
   if (!query) {
     return (
@@ -47,9 +47,11 @@ function SearchContent() {
 
 function MainContent() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <SearchContent />
-    </Suspense>
+    <SearchParamsProvider>
+      <Suspense fallback={<LoadingSpinner />}>
+        <SearchContent />
+      </Suspense>
+    </SearchParamsProvider>
   );
 }
 
