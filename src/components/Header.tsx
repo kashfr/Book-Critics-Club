@@ -13,16 +13,20 @@ import { Session } from 'next-auth';
 interface HeaderProps {
   session: Session | null;
   status: 'loading' | 'authenticated' | 'unauthenticated';
+  showSearchInHeader: boolean;
 }
 
-export default function Header({ session }: HeaderProps) {
+export default function Header({
+  session,
+  status,
+  showSearchInHeader,
+}: HeaderProps) {
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const query = searchParams.get('q');
   const isHomePage = pathname === '/';
-  const showSearchInHeader = !isHomePage || (isHomePage && query);
 
   const handleHomeClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
