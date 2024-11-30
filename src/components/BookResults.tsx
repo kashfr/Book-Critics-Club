@@ -11,6 +11,14 @@ interface BookResultsProps {
   initialPage: number;
 }
 
+interface ParallaxBook {
+  imageUrl: string;
+  bookId: string;
+  title: string;
+  query: string;
+  currentPage: number;
+}
+
 export default function BookResults({
   query,
   initialPage,
@@ -60,7 +68,7 @@ export default function BookResults({
   }
 
   // Transform books into the format needed for ParallaxScroll
-  const bookImages = books
+  const bookImages: ParallaxBook[] = books
     .map((book) => {
       if (!book.volumeInfo.imageLinks?.thumbnail) return null;
       return {
@@ -74,7 +82,7 @@ export default function BookResults({
         currentPage: currentPage,
       };
     })
-    .filter(Boolean);
+    .filter((book): book is ParallaxBook => book !== null);
 
   return (
     <div className="w-full mx-auto pt-8">
