@@ -5,7 +5,7 @@ import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Book } from '@/types/books';
 import EditableNumber from '@/components/EditableNumber';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Spinner from '@/components/Spinner';
 
 export default function BookPage(): JSX.Element {
@@ -13,9 +13,8 @@ export default function BookPage(): JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [book, setBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState(0);
+  const [chapters, setChapters] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
   const handleBack = () => {
     const returnQuery = searchParams.get('returnQuery');
@@ -31,7 +30,6 @@ export default function BookPage(): JSX.Element {
     }
   };
 
-  // Fetch book details when component mounts
   useEffect(() => {
     const fetchBookData = async () => {
       setLoading(true);
@@ -45,15 +43,13 @@ export default function BookPage(): JSX.Element {
         const data: Book = await response.json();
         setBook(data);
 
-        // Fetch chapters immediately after getting book data
         if (data.id) {
           const chaptersResponse = await fetch(
-            `/api/books/chapters?bookId=${data.googleBooksId}`
+            `/api/books/chapters?bookId=${data.id}`
           );
           if (chaptersResponse.ok) {
             const chaptersData = await chaptersResponse.json();
             setChapters(chaptersData.chapters || 0);
-            setHasLoaded(true);
           }
         }
       } catch (error) {
@@ -67,9 +63,7 @@ export default function BookPage(): JSX.Element {
   }, [params.id]);
 
   const handleUpdateChapters = async (value: number) => {
-    if (!book?.id) {
-      return;
-    }
+    if (!book?.id) return;
 
     try {
       const response = await fetch('/api/books/chapters', {
@@ -90,20 +84,6 @@ export default function BookPage(): JSX.Element {
       }
 
       setChapters(value);
-
-      const refreshResponse = await fetch(
-        `/api/books/chapters?bookId=${encodeURIComponent(book.id)}`
-      );
-
-      if (!refreshResponse.ok) {
-        return;
-      }
-
-      const refreshData = await refreshResponse.json();
-
-      if (refreshResponse.ok) {
-        setChapters(refreshData.chapters || 0);
-      }
     } catch (error) {
       console.error('Error updating chapters:', error);
     }
@@ -147,29 +127,31 @@ export default function BookPage(): JSX.Element {
               </div>
             )}
 
-            <motion.div
-              initial={
-                hasLoaded && chapters > 0 ? { opacity: 0, scale: 0.8 } : false
-              }
-              animate={
-                hasLoaded && chapters > 0 ? { opacity: 1, scale: 1 } : false
-              }
-              transition={{
-                type: 'spring',
-                duration: 0.3,
-                x: { duration: 0 },
-              }}
-            >
-              <h3 className="font-semibold">Chapters</h3>
-              <EditableNumber
-                initialValue={chapters}
-                onSave={handleUpdateChapters}
-              />
-            </motion.div>
+            <AnimatePresence mode="wait">
+              {chapters !== null && (
+                <motion.div
+                  key="chapters"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{
+                    type: 'spring',
+                    duration: 0.5,
+                    bounce: 0.4,
+                  }}
+                >
+                  <h3 className="font-semibold">Chapters</h3>
+                  <EditableNumber
+                    initialValue={chapters}
+                    onSave={handleUpdateChapters}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {book.volumeInfo.imageLinks?.thumbnail && (
-            <div className="relative aspect-2/3 w-full max-w-[300px] mb-6">
+            <div className="w-[300px] h-[450px] relative mb-6">
               <Image
                 src={book.volumeInfo.imageLinks.thumbnail.replace(
                   'zoom=1',
@@ -177,8 +159,9 @@ export default function BookPage(): JSX.Element {
                 )}
                 alt={book.volumeInfo.title}
                 fill
-                sizes="(max-width: 768px) 100vw, 300px"
+                sizes="300px"
                 className="rounded-lg shadow-lg object-contain"
+                priority
               />
             </div>
           )}
@@ -207,33 +190,34 @@ export default function BookPage(): JSX.Element {
                 <p>{book.volumeInfo.publishedDate}</p>
               </div>
             )}
-            {book.volumeInfo.categories && (
-              <div className="mb-4">
-                <h3 className="font-semibold">Categories</h3>
-                <p>{book.volumeInfo.categories.join(', ')}</p>
-              </div>
-            )}
-
-            {book.volumeInfo.averageRating && (
-              <div>
-                <h3 className="font-semibold">Rating</h3>
-                <div className="flex items-center gap-2">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i}>
-                        {i < Math.floor(book.volumeInfo.averageRating!)
-                          ? '★'
-                          : '☆'}
-                      </span>
-                    ))}
-                  </div>
-                  <span className="text-gray-600">
-                    ({book.volumeInfo.ratingsCount})
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
+
+          {book.volumeInfo.categories && (
+            <div className="mb-4">
+              <h3 className="font-semibold">Categories</h3>
+              <p>{book.volumeInfo.categories.join(', ')}</p>
+            </div>
+          )}
+
+          {book.volumeInfo.averageRating && (
+            <div>
+              <h3 className="font-semibold">Rating</h3>
+              <div className="flex items-center gap-2">
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <span key={i}>
+                      {i < Math.floor(book.volumeInfo.averageRating!)
+                        ? '★'
+                        : '☆'}
+                    </span>
+                  ))}
+                </div>
+                <span className="text-gray-600">
+                  ({book.volumeInfo.ratingsCount})
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>
@@ -248,7 +232,7 @@ export default function BookPage(): JSX.Element {
             <div className="mb-6">
               <h3 className="font-semibold mb-2">Description</h3>
               <div
-                className="text-gray-600 prose"
+                className="text-gray-600"
                 dangerouslySetInnerHTML={{
                   __html: book.volumeInfo.description,
                 }}

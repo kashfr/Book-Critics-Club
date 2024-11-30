@@ -37,121 +37,60 @@ export const ParallaxScroll = ({
   const fourthPart = books.slice(3 * fifth, 4 * fifth);
   const fifthPart = books.slice(4 * fifth);
 
+  const BookImage = ({ book, idx }: { book: ParallaxBook; idx: number }) => (
+    <Link
+      href={`/books/${book.bookId}?returnQuery=${encodeURIComponent(
+        book.query
+      )}&returnPage=${book.currentPage}`}
+    >
+      <div className="relative w-[200px] h-[300px]">
+        <Image
+          src={book.imageUrl}
+          alt={book.title}
+          className="rounded-lg object-contain"
+          fill
+          sizes="200px"
+          priority
+        />
+      </div>
+    </Link>
+  );
+
   return (
     <div className={cn('w-full flex justify-center', className)}>
       <div className="grid grid-cols-5 items-start w-fit gap-20 py-20">
         <div className="grid gap-16">
           {firstPart.map((book, idx) => (
             <motion.div style={{ y: translateFirst }} key={'grid-1' + idx}>
-              <Link
-                href={`/books/${book.bookId}?returnQuery=${encodeURIComponent(
-                  book.query
-                )}&returnPage=${book.currentPage}`}
-              >
-                <div className="relative aspect-2/3 w-[200px]">
-                  <Image
-                    src={book.imageUrl}
-                    className="rounded-lg m-0! p-0!"
-                    fill
-                    sizes="200px"
-                    style={{ objectFit: 'contain' }}
-                    alt={book.title}
-                    priority
-                  />
-                </div>
-              </Link>
+              <BookImage book={book} idx={idx} />
             </motion.div>
           ))}
         </div>
         <div className="grid gap-16">
           {secondPart.map((book, idx) => (
             <motion.div style={{ y: translateSecond }} key={'grid-2' + idx}>
-              <Link
-                href={`/books/${book.bookId}?returnQuery=${encodeURIComponent(
-                  book.query
-                )}&returnPage=${book.currentPage}`}
-              >
-                <div className="relative aspect-2/3 w-[200px]">
-                  <Image
-                    src={book.imageUrl}
-                    className="rounded-lg m-0! p-0!"
-                    fill
-                    sizes="200px"
-                    style={{ objectFit: 'contain' }}
-                    alt={book.title}
-                    priority
-                  />
-                </div>
-              </Link>
+              <BookImage book={book} idx={idx} />
             </motion.div>
           ))}
         </div>
         <div className="grid gap-16">
           {thirdPart.map((book, idx) => (
             <motion.div style={{ y: translateThird }} key={'grid-3' + idx}>
-              <Link
-                href={`/books/${book.bookId}?returnQuery=${encodeURIComponent(
-                  book.query
-                )}&returnPage=${book.currentPage}`}
-              >
-                <div className="relative aspect-2/3 w-[200px]">
-                  <Image
-                    src={book.imageUrl}
-                    className="rounded-lg m-0! p-0!"
-                    fill
-                    sizes="200px"
-                    style={{ objectFit: 'contain' }}
-                    alt={book.title}
-                    priority
-                  />
-                </div>
-              </Link>
+              <BookImage book={book} idx={idx} />
             </motion.div>
           ))}
         </div>
         <div className="grid gap-16">
           {fourthPart.map((book, idx) => (
             <motion.div style={{ y: translateFourth }} key={'grid-4' + idx}>
-              <Link
-                href={`/books/${book.bookId}?returnQuery=${encodeURIComponent(
-                  book.query
-                )}&returnPage=${book.currentPage}`}
-              >
-                <div className="relative aspect-2/3 w-[200px]">
-                  <Image
-                    src={book.imageUrl}
-                    className="rounded-lg m-0! p-0!"
-                    fill
-                    sizes="200px"
-                    style={{ objectFit: 'contain' }}
-                    alt={book.title}
-                    priority
-                  />
-                </div>
-              </Link>
+              <BookImage book={book} idx={idx} />
             </motion.div>
           ))}
         </div>
         <div className="grid gap-16">
           {fifthPart.map((book, idx) => (
             <motion.div style={{ y: translateFifth }} key={'grid-5' + idx}>
-              <Link
-                href={`/books/${book.bookId}?returnQuery=${encodeURIComponent(
-                  book.query
-                )}&returnPage=${book.currentPage}`}
-              >
-                <div className="relative aspect-2/3 w-[200px]">
-                  <Image
-                    src={book.imageUrl}
-                    className="rounded-lg m-0! p-0!"
-                    fill
-                    sizes="200px"
-                    style={{ objectFit: 'contain' }}
-                    alt={book.title}
-                    priority
-                  />
-                </div>
-              </Link>
+              <BookImage book={book} idx={idx} />
             </motion.div>
           ))}
         </div>
