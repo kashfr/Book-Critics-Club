@@ -8,10 +8,11 @@ import { Account } from "next-auth"
 import bcrypt from "bcrypt"
 import { Account as PrismaAccount } from "@prisma/client"
 
-// Log the callback URLs that should be configured
-console.log('OAuth Callback URLs that should be configured:');
-console.log(`Google: ${process.env.NEXTAUTH_URL}/api/auth/callback/google`);
-console.log(`GitHub: ${process.env.NEXTAUTH_URL}/api/auth/callback/github`);
+// Log environment and configuration details
+console.log('NextAuth Configuration:');
+console.log('NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
+console.log('Expected Google callback URL:', `${process.env.NEXTAUTH_URL}/api/auth/callback/google`);
+console.log('NODE_ENV:', process.env.NODE_ENV);
 
 interface SignInParams {
   user: {
@@ -82,6 +83,11 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       console.log('SignIn Callback - Start');
+      console.log('Auth Request Details:', {
+        callbackUrl: process.env.NEXTAUTH_URL + '/api/auth/callback/' + (account?.provider || 'unknown'),
+        provider: account?.provider,
+        type: account?.type
+      });
       console.log('User:', { id: user.id, email: user.email, name: user.name });
       console.log('Account:', account ? {
         provider: account.provider,
