@@ -3,7 +3,6 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import prisma from "@/lib/prisma"
 import GitHubProvider from "next-auth/providers/github"
 import GoogleProvider from "next-auth/providers/google"
-import AppleProvider from "next-auth/providers/apple"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { Account } from "next-auth"
 import bcrypt from "bcrypt"
@@ -62,10 +61,13 @@ export const authOptions: AuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_ID!,
       clientSecret: process.env.GOOGLE_SECRET!,
-    }),
-    AppleProvider({
-      clientId: process.env.APPLE_ID!,
-      clientSecret: process.env.APPLE_SECRET!
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
     GitHubProvider({
       clientId: process.env.GITHUB_ID!,
@@ -84,17 +86,20 @@ export const authOptions: AuthOptions = {
           (acc: PrismaAccount) => acc.provider === account?.provider
         );
 
-        if (!existingAccount) {
+        if (!existingAccount && account) {
           try {
             await prisma.account.create({
               data: {
                 userId: existingUser.id,
-                type: account!.type,
-                provider: account!.provider,
-                providerAccountId: account!.providerAccountId,
-                access_token: account!.access_token,
-                token_type: account!.token_type,
-                scope: account!.scope,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token,
+                token_type: account.token_type,
+                scope: account.scope,
+                expires_at: account.expires_at,
+                id_token: account.id_token,
+                refresh_token: account.refresh_token
               },
             });
           } catch (error) {
@@ -118,5 +123,6 @@ export const authOptions: AuthOptions = {
   session: {
     strategy: "jwt" as const
   },
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET
 } 
