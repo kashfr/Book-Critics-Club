@@ -5,7 +5,7 @@ import SignOutButton from './SignOutButton';
 import { useState } from 'react';
 import SignUpModal from './SignUpModal';
 import Link from 'next/link';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import eventEmitter from '@/utils/events';
 import BookSearchBar from './BookSearchBar';
 import { Session } from 'next-auth';
@@ -13,7 +13,6 @@ import { Suspense } from 'react';
 
 interface HeaderProps {
   session: Session | null;
-  status: 'loading' | 'authenticated' | 'unauthenticated';
   showSearchInHeader: boolean;
 }
 
@@ -26,9 +25,7 @@ function HeaderContent({
 }) {
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const pathname = usePathname();
-  const query = searchParams.get('q');
   const isHomePage = pathname === '/';
 
   const handleHomeClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -75,11 +72,7 @@ function HeaderContent({
   );
 }
 
-export default function Header({
-  session,
-  status,
-  showSearchInHeader,
-}: HeaderProps) {
+export default function Header({ session, showSearchInHeader }: HeaderProps) {
   return (
     <header className="w-full py-4 bg-white shadow-xs">
       <Suspense

@@ -90,7 +90,7 @@ export default function BookResults({
   if (books.length === 0) {
     return (
       <div className="w-full text-center py-8">
-        No books found for "{query}"
+        No books found for &quot;{query}&quot;
       </div>
     );
   }
