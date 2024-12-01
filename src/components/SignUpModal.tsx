@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { signIn } from 'next-auth/react';
 
@@ -12,22 +12,39 @@ export default function SignUpModal({ onClose }: SignUpModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const response = await axios.post('/api/signup', { email, password });
-      
+
       if (response.status === 201) {
         const result = await signIn('credentials', {
           email,
           password,
           redirect: false,
         });
-        
+
         if (result?.ok) {
           onClose();
-          window.location.reload(); // Force a full page reload
+          window.location.reload();
         }
       }
     } catch (error: unknown) {
@@ -38,10 +55,14 @@ export default function SignUpModal({ onClose }: SignUpModalProps) {
       }
     }
   };
-  
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded-sm shadow-lg w-96">
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black bg-opacity-50" />
+      <div
+        ref={modalRef}
+        className="bg-white p-6 rounded-sm shadow-lg w-96 relative"
+      >
         <h2 className="text-2xl mb-4">Sign Up</h2>
         <form onSubmit={handleSignUp} className="space-y-4">
           <div>
@@ -69,13 +90,13 @@ export default function SignUpModal({ onClose }: SignUpModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-300 rounded-sm"
+              className="px-4 py-2 bg-gray-300 rounded-sm hover:bg-gray-400"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-green-500 text-white rounded-sm"
+              className="px-4 py-2 bg-green-500 text-white rounded-sm hover:bg-green-600"
             >
               Sign Up
             </button>

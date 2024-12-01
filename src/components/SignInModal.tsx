@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 
 interface SignInModalProps {
@@ -11,6 +11,23 @@ export default function SignInModal({ onClose }: SignInModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,8 +46,12 @@ export default function SignInModal({ onClose }: SignInModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-96 relative z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black bg-opacity-50" />
+      <div
+        ref={modalRef}
+        className="bg-white p-8 rounded-lg shadow-xl w-96 relative"
+      >
         <h2 className="text-2xl mb-4">Sign In</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -83,7 +104,7 @@ export default function SignInModal({ onClose }: SignInModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-200 rounded-sm"
+            className="w-full px-4 py-2 bg-gray-200 rounded-sm hover:bg-gray-300"
           >
             Cancel
           </button>

@@ -37,6 +37,8 @@ function HeaderContent({
     router.push('/');
   };
 
+  const shouldShowSearch = showSearchInHeader && !isHomePage;
+
   return (
     <div className="max-w-7xl mx-auto px-4">
       <div className="flex justify-between items-center">
@@ -48,7 +50,7 @@ function HeaderContent({
           Book Critics Club
         </Link>
         <div className="flex-1 flex justify-center">
-          {session && showSearchInHeader && <BookSearchBar position="header" />}
+          {session && shouldShowSearch && <BookSearchBar position="header" />}
         </div>
         <div className="flex gap-4">
           {!session ? (

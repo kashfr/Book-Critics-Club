@@ -1,5 +1,29 @@
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient()
+declare global {
+  var prisma: PrismaClient | undefined;
+}
 
-export default prisma
+if (!process.env.DIRECT_URL) {
+  throw new Error('DIRECT_URL environment variable is not set');
+}
+
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: ['query', 'error', 'warn'],
+    datasources: {
+      db: {
+        url: process.env.DIRECT_URL
+      }
+    },
+    errorFormat: 'pretty',
+  });
+};
+
+const prisma = globalThis.prisma ?? prismaClientSingleton();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prisma = prisma;
+}
+
+export default prisma;

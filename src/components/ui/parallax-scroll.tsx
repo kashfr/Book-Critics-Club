@@ -46,7 +46,7 @@ export const ParallaxScroll = ({
       <div className="relative w-[200px] h-[300px]">
         <Image
           src={book.imageUrl}
-          alt={book.title}
+          alt={`Cover of ${book.title}`}
           className="rounded-lg object-contain"
           fill
           sizes="200px"
