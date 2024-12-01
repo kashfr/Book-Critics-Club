@@ -63,11 +63,11 @@ export default function EditableNumber({
               setTempValue(e.target.value);
               setError(null);
             }}
-            className={`w-20 px-2 py-1 border rounded-sm bg-white ${
+            className={`w-24 px-3 py-2 text-2xl border rounded-md bg-white ${
               error
                 ? 'border-red-500 focus:border-red-500'
                 : 'focus:border-blue-500'
-            } focus:outline-none focus:ring-1 ${
+            } focus:outline-none focus:ring-2 ${
               error ? 'focus:ring-red-500' : 'focus:ring-blue-500'
             }`}
             min="0"
@@ -90,7 +90,7 @@ export default function EditableNumber({
         setTempValue(String(value));
         setError(null);
       }}
-      className="inline-flex items-center hover:text-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm px-1"
+      className="inline-flex items-center text-2xl text-blue-900 hover:text-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md px-2 py-1"
     >
       <AnimatedNumber value={value} duration={1.5} />
     </button>

@@ -136,53 +136,60 @@ function BookPageContent() {
             </h2>
           )}
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            {book.volumeInfo.pageCount && (
-              <div>
-                <h3 className="font-semibold">Pages</h3>
-                <p>{book.volumeInfo.pageCount}</p>
+          <div className="flex flex-col md:flex-row gap-6 mb-6">
+            {book.volumeInfo.imageLinks?.thumbnail && (
+              <div className="relative">
+                <Image
+                  src={book.volumeInfo.imageLinks.thumbnail.replace(
+                    'zoom=1',
+                    'zoom=3'
+                  )}
+                  alt={book.volumeInfo.title}
+                  width={300}
+                  height={450}
+                  style={{ width: 'auto', height: 'auto', maxHeight: '450px' }}
+                  className="rounded-lg shadow-lg"
+                  priority
+                />
               </div>
             )}
 
-            <AnimatePresence mode="wait">
-              {chapters !== null && (
-                <motion.div
-                  key="chapters"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{
-                    type: 'spring',
-                    duration: 0.5,
-                    bounce: 0.4,
-                  }}
-                >
-                  <h3 className="font-semibold">Chapters</h3>
-                  <EditableNumber
-                    initialValue={chapters}
-                    onSave={handleUpdateChapters}
-                  />
-                </motion.div>
+            <div className="flex flex-col justify-start gap-4">
+              {book.volumeInfo.pageCount && (
+                <div>
+                  <h3 className="text-lg font-semibold">Pages</h3>
+                  <p className="text-xl">{book.volumeInfo.pageCount}</p>
+                </div>
               )}
-            </AnimatePresence>
-          </div>
 
-          {book.volumeInfo.imageLinks?.thumbnail && (
-            <div className="mb-6">
-              <Image
-                src={book.volumeInfo.imageLinks.thumbnail.replace(
-                  'zoom=1',
-                  'zoom=3'
+              <AnimatePresence mode="wait">
+                {chapters !== null && (
+                  <motion.div
+                    key="chapters"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{
+                      type: 'spring',
+                      duration: 0.5,
+                      bounce: 0.4,
+                    }}
+                    className="bg-blue-50 p-4 rounded-lg shadow-sm"
+                  >
+                    <h3 className="text-xl font-bold text-blue-900 mb-2">
+                      Chapters
+                    </h3>
+                    <div className="text-2xl">
+                      <EditableNumber
+                        initialValue={chapters}
+                        onSave={handleUpdateChapters}
+                      />
+                    </div>
+                  </motion.div>
                 )}
-                alt={book.volumeInfo.title}
-                width={300}
-                height={450}
-                style={{ width: 'auto', height: 'auto', maxHeight: '450px' }}
-                className="rounded-lg shadow-lg"
-                priority
-              />
+              </AnimatePresence>
             </div>
-          )}
+          </div>
 
           {book.volumeInfo.previewLink && (
             <a
