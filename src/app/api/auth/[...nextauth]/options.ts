@@ -80,7 +80,7 @@ export const authOptions: AuthOptions = {
 
       if (existingUser) {
         const existingAccount = existingUser.accounts.find(
-          (acc) => acc.provider === account?.provider
+          (acc: Account) => acc.provider === account?.provider
         );
 
         if (!existingAccount) {
