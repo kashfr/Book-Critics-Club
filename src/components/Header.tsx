@@ -5,7 +5,7 @@ import SignOutButton from './SignOutButton';
 import { useState } from 'react';
 import SignUpModal from './SignUpModal';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import eventEmitter from '@/utils/events';
 import BookSearchBar from './BookSearchBar';
 import { Session } from 'next-auth';
@@ -29,7 +29,8 @@ function HeaderContent({
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const isHomePage = pathname === '/';
+  const searchParams = useSearchParams();
+  const isHomePage = pathname === '/' && !searchParams.get('q');
 
   const handleHomeClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
