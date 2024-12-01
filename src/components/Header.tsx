@@ -14,14 +14,17 @@ import { Suspense } from 'react';
 interface HeaderProps {
   session: Session | null;
   showSearchInHeader: boolean;
+  status?: 'loading' | 'authenticated' | 'unauthenticated';
 }
 
 function HeaderContent({
   session,
   showSearchInHeader,
+  status,
 }: {
   session: Session | null;
   showSearchInHeader: boolean;
+  status?: 'loading' | 'authenticated' | 'unauthenticated';
 }) {
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const router = useRouter();
@@ -72,7 +75,11 @@ function HeaderContent({
   );
 }
 
-export default function Header({ session, showSearchInHeader }: HeaderProps) {
+export default function Header({
+  session,
+  showSearchInHeader,
+  status,
+}: HeaderProps) {
   return (
     <header className="w-full py-4 bg-white shadow-xs">
       <Suspense
@@ -81,6 +88,7 @@ export default function Header({ session, showSearchInHeader }: HeaderProps) {
         <HeaderContent
           session={session}
           showSearchInHeader={showSearchInHeader}
+          status={status}
         />
       </Suspense>
     </header>
