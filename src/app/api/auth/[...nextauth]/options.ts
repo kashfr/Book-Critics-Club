@@ -7,6 +7,7 @@ import AppleProvider from "next-auth/providers/apple"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { Account } from "next-auth"
 import bcrypt from "bcrypt"
+import { Account as PrismaAccount } from "@prisma/client"
 
 interface SignInParams {
   user: {
@@ -80,7 +81,7 @@ export const authOptions: AuthOptions = {
 
       if (existingUser) {
         const existingAccount = existingUser.accounts.find(
-          (acc: Account) => acc.provider === account?.provider
+          (acc: PrismaAccount) => acc.provider === account?.provider
         );
 
         if (!existingAccount) {
