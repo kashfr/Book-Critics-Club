@@ -30,6 +30,12 @@ export default function SignIn() {
     }
   };
 
+  const handleOAuthSignIn = (provider: string) => {
+    signIn(provider, {
+      callbackUrl: '/',
+    });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
@@ -100,19 +106,19 @@ export default function SignIn() {
 
           <div className="mt-6 grid grid-cols-3 gap-3">
             <button
-              onClick={() => signIn('github')}
+              onClick={() => handleOAuthSignIn('github')}
               className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
             >
               GitHub
             </button>
             <button
-              onClick={() => signIn('google')}
+              onClick={() => handleOAuthSignIn('google')}
               className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
             >
               Google
             </button>
             <button
-              onClick={() => signIn('apple')}
+              onClick={() => handleOAuthSignIn('apple')}
               className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
             >
               Apple
