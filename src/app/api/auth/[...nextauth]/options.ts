@@ -8,21 +8,25 @@ import { Account } from "next-auth"
 import bcrypt from "bcrypt"
 import { Account as PrismaAccount } from "@prisma/client"
 
+// Test database connection on startup
+prisma.$connect()
+  .then(() => {
+    console.log('Database connection test successful');
+    return prisma.user.count();
+  })
+  .then((userCount) => {
+    console.log(`Database has ${userCount} users`);
+  })
+  .catch((error) => {
+    console.error('Database connection test failed:', error);
+  });
+
 // Log environment and configuration details
 console.log('NextAuth Configuration:');
 console.log('NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
 console.log('Expected Google callback URL:', `${process.env.NEXTAUTH_URL}/api/auth/callback/google`);
 console.log('NODE_ENV:', process.env.NODE_ENV);
-
-interface SignInParams {
-  user: {
-    id?: string;
-    email?: string | null;
-    name?: string | null;
-  };
-  account: Account | null;
-  profile?: Profile;
-}
+console.log('Database URL:', process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':****@'));
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -38,30 +42,35 @@ export const authOptions: AuthOptions = {
           throw new Error('Invalid credentials');
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
+        try {
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email
+            }
+          });
+
+          if (!user || !user.password) {
+            throw new Error('Invalid credentials');
           }
-        });
 
-        if (!user || !user.password) {
-          throw new Error('Invalid credentials');
+          const isCorrectPassword = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isCorrectPassword) {
+            throw new Error('Invalid credentials');
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          };
+        } catch (error) {
+          console.error('Database error in authorize:', error);
+          throw new Error('Database error during authentication');
         }
-
-        const isCorrectPassword = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isCorrectPassword) {
-          throw new Error('Invalid credentials');
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
       }
     }),
     GoogleProvider({
@@ -88,21 +97,18 @@ export const authOptions: AuthOptions = {
         provider: account?.provider,
         type: account?.type
       });
-      console.log('User:', { id: user.id, email: user.email, name: user.name });
-      console.log('Account:', account ? {
-        provider: account.provider,
-        type: account.type,
-        providerAccountId: account.providerAccountId
-      } : 'No account');
-      console.log('Profile:', profile);
 
       try {
+        // Test database connection before proceeding
+        await prisma.$connect();
+        console.log('Database connection verified in signIn callback');
+
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email! },
           include: { accounts: true },
         });
 
-        console.log('Existing user:', existingUser ? {
+        console.log('Existing user lookup result:', existingUser ? {
           id: existingUser.id,
           email: existingUser.email,
           accountsCount: existingUser.accounts.length
@@ -112,11 +118,6 @@ export const authOptions: AuthOptions = {
           const existingAccount = existingUser.accounts.find(
             (acc: PrismaAccount) => acc.provider === account?.provider
           );
-
-          console.log('Existing account for this provider:', existingAccount ? {
-            provider: existingAccount.provider,
-            type: existingAccount.type
-          } : 'None');
 
           if (!existingAccount && account) {
             console.log('Creating new account link');
@@ -135,44 +136,61 @@ export const authOptions: AuthOptions = {
                   refresh_token: account.refresh_token
                 },
               });
-              console.log('Account link created:', {
-                provider: newAccount.provider,
-                type: newAccount.type
-              });
+              console.log('Account link created successfully');
             } catch (error) {
-              console.error('Error linking account:', error);
+              console.error('Database error creating account link:', error);
               return false;
             }
           }
         } else {
-          console.log('No existing user found, adapter will create new user');
+          console.log('No existing user - adapter will create new user');
+          // Test if we can create a user
+          try {
+            const testUser = await prisma.user.create({
+              data: {
+                email: user.email!,
+                name: user.name
+              }
+            });
+            console.log('Test user creation successful');
+            // Clean up test user
+            await prisma.user.delete({ where: { id: testUser.id } });
+          } catch (error) {
+            console.error('Database error testing user creation:', error);
+            return false;
+          }
         }
 
-        console.log('SignIn Callback - Success');
         return true;
       } catch (error) {
-        console.error('SignIn Callback - Error:', error);
+        console.error('Database error in signIn callback:', error);
         return false;
+      } finally {
+        try {
+          await prisma.$disconnect();
+        } catch (error) {
+          console.error('Error disconnecting from database:', error);
+        }
       }
     },
     async session({ session, token }) {
-      console.log('Session Callback', {
-        sessionUser: session?.user,
-        token: { ...token, sub: token.sub }
-      });
-      
-      if (session?.user) {
-        session.user.id = token.sub as string;
+      try {
+        if (session?.user) {
+          session.user.id = token.sub as string;
+        }
+        return session;
+      } catch (error) {
+        console.error('Error in session callback:', error);
+        return session;
       }
-      return session;
     },
     async jwt({ token, user, account }) {
-      console.log('JWT Callback', {
-        tokenSub: token.sub,
-        userId: user?.id,
-        accountProvider: account?.provider
-      });
-      return token;
+      try {
+        return token;
+      } catch (error) {
+        console.error('Error in JWT callback:', error);
+        return token;
+      }
     }
   },
   pages: {
