@@ -25,8 +25,13 @@ prisma.$connect()
 console.log('NextAuth Configuration:');
 console.log('NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
 console.log('Expected Google callback URL:', `${process.env.NEXTAUTH_URL}/api/auth/callback/google`);
+console.log('Expected GitHub callback URL:', `${process.env.NEXTAUTH_URL}/api/auth/callback/github`);
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('Database URL:', process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':****@'));
+
+if (!process.env.NEXTAUTH_URL) {
+  console.error('NEXTAUTH_URL is not set');
+}
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -80,13 +85,19 @@ export const authOptions: AuthOptions = {
         params: {
           prompt: "consent",
           access_type: "offline",
-          response_type: "code"
+          response_type: "code",
+          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/google`
         }
       }
     }),
     GitHubProvider({
       clientId: process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_SECRET!,
+      authorization: {
+        params: {
+          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/github`
+        }
+      }
     }),
   ],
   callbacks: {
