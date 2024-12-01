@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
 declare global {
-  let prisma: PrismaClient | undefined;
+  var prisma: PrismaClient | undefined;
 }
 
 if (!process.env.DIRECT_URL) {
@@ -20,10 +20,10 @@ const prismaClientSingleton = () => {
   });
 };
 
-const prisma = globalThis.prisma ?? prismaClientSingleton();
+const prisma = global.prisma ?? prismaClientSingleton();
 
 if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = prisma;
+  global.prisma = prisma;
 }
 
 export default prisma;
