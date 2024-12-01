@@ -8,6 +8,11 @@ import { Account } from "next-auth"
 import bcrypt from "bcrypt"
 import { Account as PrismaAccount } from "@prisma/client"
 
+// Log the callback URLs that should be configured
+console.log('OAuth Callback URLs that should be configured:');
+console.log(`Google: ${process.env.NEXTAUTH_URL}/api/auth/callback/google`);
+console.log(`GitHub: ${process.env.NEXTAUTH_URL}/api/auth/callback/github`);
+
 interface SignInParams {
   user: {
     id?: string;
@@ -170,7 +175,7 @@ export const authOptions: AuthOptions = {
   session: {
     strategy: "jwt" as const
   },
-  debug: true, // Enable debug mode always for now
+  debug: true,
   secret: process.env.NEXTAUTH_SECRET,
   logger: {
     error(code, metadata) {
