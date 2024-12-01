@@ -75,46 +75,93 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
-      const existingUser = await prisma.user.findUnique({
-        where: { email: user.email! },
-        include: { accounts: true },
-      });
+    async signIn({ user, account, profile }) {
+      console.log('SignIn Callback - Start');
+      console.log('User:', { id: user.id, email: user.email, name: user.name });
+      console.log('Account:', account ? {
+        provider: account.provider,
+        type: account.type,
+        providerAccountId: account.providerAccountId
+      } : 'No account');
+      console.log('Profile:', profile);
 
-      if (existingUser) {
-        const existingAccount = existingUser.accounts.find(
-          (acc: PrismaAccount) => acc.provider === account?.provider
-        );
+      try {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+          include: { accounts: true },
+        });
 
-        if (!existingAccount && account) {
-          try {
-            await prisma.account.create({
-              data: {
-                userId: existingUser.id,
-                type: account.type,
-                provider: account.provider,
-                providerAccountId: account.providerAccountId,
-                access_token: account.access_token,
-                token_type: account.token_type,
-                scope: account.scope,
-                expires_at: account.expires_at,
-                id_token: account.id_token,
-                refresh_token: account.refresh_token
-              },
-            });
-          } catch (error) {
-            console.error('Error linking account:', error);
-            return false;
+        console.log('Existing user:', existingUser ? {
+          id: existingUser.id,
+          email: existingUser.email,
+          accountsCount: existingUser.accounts.length
+        } : 'Not found');
+
+        if (existingUser) {
+          const existingAccount = existingUser.accounts.find(
+            (acc: PrismaAccount) => acc.provider === account?.provider
+          );
+
+          console.log('Existing account for this provider:', existingAccount ? {
+            provider: existingAccount.provider,
+            type: existingAccount.type
+          } : 'None');
+
+          if (!existingAccount && account) {
+            console.log('Creating new account link');
+            try {
+              const newAccount = await prisma.account.create({
+                data: {
+                  userId: existingUser.id,
+                  type: account.type,
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId,
+                  access_token: account.access_token,
+                  token_type: account.token_type,
+                  scope: account.scope,
+                  expires_at: account.expires_at,
+                  id_token: account.id_token,
+                  refresh_token: account.refresh_token
+                },
+              });
+              console.log('Account link created:', {
+                provider: newAccount.provider,
+                type: newAccount.type
+              });
+            } catch (error) {
+              console.error('Error linking account:', error);
+              return false;
+            }
           }
+        } else {
+          console.log('No existing user found, adapter will create new user');
         }
+
+        console.log('SignIn Callback - Success');
+        return true;
+      } catch (error) {
+        console.error('SignIn Callback - Error:', error);
+        return false;
       }
-      return true;
     },
     async session({ session, token }) {
+      console.log('Session Callback', {
+        sessionUser: session?.user,
+        token: { ...token, sub: token.sub }
+      });
+      
       if (session?.user) {
         session.user.id = token.sub as string;
       }
       return session;
+    },
+    async jwt({ token, user, account }) {
+      console.log('JWT Callback', {
+        tokenSub: token.sub,
+        userId: user?.id,
+        accountProvider: account?.provider
+      });
+      return token;
     }
   },
   pages: {
@@ -123,6 +170,17 @@ export const authOptions: AuthOptions = {
   session: {
     strategy: "jwt" as const
   },
-  debug: process.env.NODE_ENV === 'development',
-  secret: process.env.NEXTAUTH_SECRET
+  debug: true, // Enable debug mode always for now
+  secret: process.env.NEXTAUTH_SECRET,
+  logger: {
+    error(code, metadata) {
+      console.error('Auth Error:', { code, metadata });
+    },
+    warn(code) {
+      console.warn('Auth Warning:', { code });
+    },
+    debug(code, metadata) {
+      console.log('Auth Debug:', { code, metadata });
+    }
+  }
 } 
