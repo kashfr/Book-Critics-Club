@@ -5,8 +5,8 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-if (!process.env.DIRECT_URL) {
-  throw new Error('DIRECT_URL environment variable is not set');
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is not set');
 }
 
 const prismaClientSingleton = () => {
@@ -14,7 +14,7 @@ const prismaClientSingleton = () => {
     log: ['query', 'error', 'warn'],
     datasources: {
       db: {
-        url: process.env.DIRECT_URL
+        url: process.env.DATABASE_URL
       }
     },
     errorFormat: 'pretty',
