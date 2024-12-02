@@ -87,7 +87,7 @@ export const authOptions: AuthOptions = {
           access_type: "offline",
           response_type: "code",
           redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/google`,
-        }
+        },
       }
     }),
     GitHubProvider({
@@ -188,6 +188,16 @@ export const authOptions: AuthOptions = {
       try {
         if (session?.user) {
           session.user.id = token.sub as string;
+          
+          // Ensure we have the latest user data
+          const user = await prisma.user.findUnique({
+            where: { id: token.sub as string },
+          });
+          
+          if (user) {
+            session.user.name = user.name;
+            session.user.email = user.email;
+          }
         }
         return session;
       } catch (error) {

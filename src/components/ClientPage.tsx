@@ -62,7 +62,7 @@ export default function ClientPage(): JSX.Element {
     return <LoadingSpinner />;
   }
 
-  if (!session) {
+  if (status === 'unauthenticated') {
     return (
       <>
         <main className="flex-1 flex items-center justify-center">
