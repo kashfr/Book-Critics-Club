@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useSession } from 'next-auth/react';
-import Footer from '@/components/Footer';
-import BookResults from '@/components/BookResults';
-import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
-import BookSearchBar from '@/components/BookSearchBar';
-import Image from 'next/image';
+import Footer from "@/components/Footer";
+import BookResults from "@/components/BookResults";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import BookSearchBar from "@/components/BookSearchBar";
+import Image from "next/image";
 import SearchParamsProvider, {
   useSearchParamsContext,
-} from './SearchParamsProvider';
-import { Suspense } from 'react';
+} from "./SearchParamsProvider";
+import { Suspense } from "react";
+import { useAuth } from "@/lib/firebase/auth-context";
 
 const words = `Welcome, bookworm! Please sign in.`;
 
@@ -56,13 +56,13 @@ function MainContent() {
 }
 
 export default function ClientPage(): JSX.Element {
-  const { data: session, status } = useSession();
+  const { user, loading } = useAuth();
 
-  if (status === 'loading') {
+  if (loading) {
     return <LoadingSpinner />;
   }
 
-  if (status === 'unauthenticated') {
+  if (!user) {
     return (
       <>
         <main className="flex-1 flex items-center justify-center">

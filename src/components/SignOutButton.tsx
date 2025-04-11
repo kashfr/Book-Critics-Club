@@ -1,8 +1,10 @@
-'use client';
+"use client";
 
-import { signOut } from 'next-auth/react';
+import { useAuth } from "@/lib/firebase/auth-context";
 
 export default function SignOutButton() {
+  const { signOut } = useAuth();
+
   return (
     <button
       onClick={() => signOut()}

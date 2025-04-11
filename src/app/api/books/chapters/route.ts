@@ -1,188 +1,105 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { NextResponse } from "next/server";
+import { getFirestore } from "firebase-admin/firestore";
+import { initializeFirebaseAdmin } from "@/lib/firebase/admin";
 
-export const dynamic = 'force-dynamic';
+// Initialize Firebase Admin SDK
+initializeFirebaseAdmin();
 
-async function testDatabaseConnection() {
-  try {
-    await prisma.$connect();
-    console.log('Database connection successful');
-    return true;
-  } catch (error) {
-    console.error('Database connection failed:', error);
-    return false;
+// Firestore collection name for book details
+const BOOK_DETAILS_COLLECTION = "bookDetails";
+
+export const dynamic = "force-dynamic";
+
+async function getBookChaptersFromFirestore(
+  bookId: string
+): Promise<number | null> {
+  const firestore = getFirestore();
+  const docRef = firestore.collection(BOOK_DETAILS_COLLECTION).doc(bookId);
+  const docSnap = await docRef.get();
+
+  if (docSnap.exists) {
+    const data = docSnap.data();
+    return data && typeof data.chapters === "number" ? data.chapters : 0;
+  } else {
+    return null;
   }
+}
+
+async function setBookChaptersInFirestore(
+  bookId: string,
+  chapters: number
+): Promise<void> {
+  const firestore = getFirestore();
+  const docRef = firestore.collection(BOOK_DETAILS_COLLECTION).doc(bookId);
+  await docRef.set({ chapters: chapters }, { merge: true });
 }
 
 export async function GET(request: Request) {
-  console.log('Starting GET request for chapters');
-  
+  console.log("Starting GET request for chapters");
   try {
-    // Test database connection first
-    const isConnected = await testDatabaseConnection();
-    if (!isConnected) {
-      console.error('Database connection test failed');
-      return NextResponse.json(
-        { error: 'Database connection failed' },
-        { status: 500 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
-    const bookId = searchParams.get('bookId');
+    const bookId = searchParams.get("bookId");
 
-    console.log('GET chapters - Received request for bookId:', bookId);
+    console.log("GET chapters - Received request for bookId:", bookId);
 
     if (!bookId) {
-      console.error('GET chapters - Missing bookId parameter');
-      return NextResponse.json({ error: 'Book ID is required' }, { status: 400 });
-    }
-
-    try {
-      // First, try to find existing book details
-      const bookDetails = await prisma.bookDetails.findUnique({
-        where: {
-          googleBooksId: bookId,
-        },
-      });
-
-      console.log('GET chapters - Found book details:', bookDetails);
-
-      // If no existing record, create one with 0 chapters
-      if (!bookDetails) {
-        console.log('GET chapters - No existing record, creating new one');
-        try {
-          const newBookDetails = await prisma.bookDetails.create({
-            data: {
-              googleBooksId: bookId,
-              chapters: 0,
-            },
-          });
-          console.log('GET chapters - Created new record:', newBookDetails);
-          return NextResponse.json({ chapters: 0 });
-        } catch (createError) {
-          console.error('GET chapters - Error creating new record:', createError);
-          throw createError;
-        }
-      }
-
-      return NextResponse.json({
-        chapters: bookDetails.chapters,
-      });
-    } catch (dbError) {
-      console.error('GET chapters - Database operation error:', dbError);
-      throw dbError;
-    }
-  } catch (error: unknown) {
-    const errorDetails = {
-      name: error instanceof Error ? error.name : 'Unknown error',
-      message: error instanceof Error ? error.message : 'An unknown error occurred',
-      stack: error instanceof Error ? error.stack : undefined,
-      code: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined
-    };
-    
-    console.error('GET chapters - Error:', errorDetails);
-
-    if (error instanceof Prisma.PrismaClientInitializationError) {
+      console.error("GET chapters - Missing bookId parameter");
       return NextResponse.json(
-        { error: 'Database initialization failed' },
-        { status: 500 }
-      );
-    }
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      return NextResponse.json(
-        { error: `Database error: ${error.code}` },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: errorDetails.message },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-export async function POST(request: Request) {
-  console.log('Starting POST request for chapters');
-  
-  try {
-    // Test database connection first
-    const isConnected = await testDatabaseConnection();
-    if (!isConnected) {
-      console.error('Database connection test failed');
-      return NextResponse.json(
-        { error: 'Database connection failed' },
-        { status: 500 }
-      );
-    }
-
-    const body = await request.json();
-    const { bookId, chapters } = body;
-
-    console.log('POST chapters - Received request:', { bookId, chapters });
-
-    if (!bookId || typeof chapters !== 'number') {
-      console.error('POST chapters - Invalid input:', { bookId, chapters });
-      return NextResponse.json(
-        { error: 'Book ID and chapters are required' },
+        { error: "Book ID is required" },
         { status: 400 }
       );
     }
 
-    try {
-      const bookDetails = await prisma.bookDetails.upsert({
-        where: {
-          googleBooksId: bookId,
-        },
-        update: {
-          chapters,
-        },
-        create: {
-          googleBooksId: bookId,
-          chapters,
-        },
-      });
+    const chapters = await getBookChaptersFromFirestore(bookId);
 
-      console.log('POST chapters - Updated book details:', bookDetails);
-      return NextResponse.json(bookDetails);
-    } catch (dbError) {
-      console.error('POST chapters - Database operation error:', dbError);
-      throw dbError;
+    if (chapters === null) {
+      console.log(
+        "GET chapters - Book not found, creating new entry with 0 chapters"
+      );
+      await setBookChaptersInFirestore(bookId, 0);
+      return NextResponse.json({ chapters: 0 });
+    } else {
+      console.log("GET chapters - Found chapters:", chapters);
+      return NextResponse.json({ chapters: chapters });
     }
   } catch (error: unknown) {
-    const errorDetails = {
-      name: error instanceof Error ? error.name : 'Unknown error',
-      message: error instanceof Error ? error.message : 'An unknown error occurred',
-      stack: error instanceof Error ? error.stack : undefined,
-      code: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined
-    };
-    
-    console.error('POST chapters - Error:', errorDetails);
-
-    if (error instanceof Prisma.PrismaClientInitializationError) {
-      return NextResponse.json(
-        { error: 'Database initialization failed' },
-        { status: 500 }
-      );
-    }
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      return NextResponse.json(
-        { error: `Database error: ${error.code}` },
-        { status: 500 }
-      );
-    }
-
+    console.error("GET chapters - Error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
-      { error: errorDetails.message },
+      { error: `Failed to retrieve chapters: ${errorMessage}` },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
-} 
+}
+
+export async function POST(request: Request) {
+  console.log("Starting POST request for chapters");
+  try {
+    const body = await request.json();
+    const { bookId, chapters } = body;
+
+    console.log("POST chapters - Received request:", { bookId, chapters });
+
+    if (!bookId || typeof chapters !== "number") {
+      console.error("POST chapters - Invalid input:", { bookId, chapters });
+      return NextResponse.json(
+        { error: "Book ID and a valid chapter number are required" },
+        { status: 400 }
+      );
+    }
+
+    await setBookChaptersInFirestore(bookId, chapters);
+
+    console.log("POST chapters - Updated book chapters for bookId:", bookId);
+    return NextResponse.json({ bookId, chapters });
+  } catch (error: unknown) {
+    console.error("POST chapters - Error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
+    return NextResponse.json(
+      { error: `Failed to update chapters: ${errorMessage}` },
+      { status: 500 }
+    );
+  }
+}

@@ -1,44 +1,43 @@
-'use client';
+"use client";
 
-import SignInButton from './SignInButton';
-import SignOutButton from './SignOutButton';
-import { useState } from 'react';
-import SignUpModal from './SignUpModal';
-import Link from 'next/link';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import eventEmitter from '@/utils/events';
-import BookSearchBar from './BookSearchBar';
-import { Session } from 'next-auth';
-import { Suspense } from 'react';
+import SignInButton from "./SignInButton";
+import SignOutButton from "./SignOutButton";
+import { useState } from "react";
+import SignUpModal from "./SignUpModal";
+import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import eventEmitter from "@/utils/events";
+import BookSearchBar from "./BookSearchBar";
+import { Suspense } from "react";
+import { useAuth } from "@/lib/firebase/auth-context";
 
 interface HeaderProps {
-  session: Session | null;
   showSearchInHeader: boolean;
-  status?: 'loading' | 'authenticated' | 'unauthenticated';
 }
 
 function HeaderContent({
-  session,
   showSearchInHeader,
-  status,
 }: {
-  session: Session | null;
   showSearchInHeader: boolean;
-  status?: 'loading' | 'authenticated' | 'unauthenticated';
 }) {
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isHomePage = pathname === '/' && !searchParams.get('q');
+  const isHomePage = pathname === "/" && !searchParams.get("q");
+  const { user, loading } = useAuth();
 
   const handleHomeClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    eventEmitter.emit('resetSearch');
-    router.push('/');
+    eventEmitter.emit("resetSearch");
+    router.push("/");
   };
 
-  const shouldShowSearch = showSearchInHeader && !isHomePage && session;
+  const shouldShowSearch = showSearchInHeader && !isHomePage && user;
+
+  if (loading) {
+    return <div className="max-w-7xl mx-auto px-4">Loading...</div>;
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4">
@@ -54,7 +53,7 @@ function HeaderContent({
           {shouldShowSearch && <BookSearchBar position="header" />}
         </div>
         <div className="flex gap-4">
-          {!session ? (
+          {!user ? (
             <>
               <SignInButton />
               <button
@@ -76,21 +75,13 @@ function HeaderContent({
   );
 }
 
-export default function Header({
-  session,
-  showSearchInHeader,
-  status,
-}: HeaderProps) {
+export default function Header({ showSearchInHeader }: HeaderProps) {
   return (
     <header className="w-full py-4 bg-white shadow-xs">
       <Suspense
         fallback={<div className="max-w-7xl mx-auto px-4">Loading...</div>}
       >
-        <HeaderContent
-          session={session}
-          showSearchInHeader={showSearchInHeader}
-          status={status}
-        />
+        <HeaderContent showSearchInHeader={showSearchInHeader} />
       </Suspense>
     </header>
   );

@@ -1,18 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
-import { signIn } from 'next-auth/react';
+import { useState, useRef, useEffect } from "react";
+import { useAuth } from "@/lib/firebase/auth-context";
+import { useRouter } from "next/navigation";
 
 interface SignUpModalProps {
   onClose: () => void;
 }
 
 export default function SignUpModal({ onClose }: SignUpModalProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const { signUp, signInWithGoogle, signInWithGithub } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -24,35 +27,57 @@ export default function SignUpModal({ onClose }: SignUpModalProps) {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [onClose]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+
     try {
-      const response = await axios.post('/api/signup', { email, password });
-
-      if (response.status === 201) {
-        const result = await signIn('credentials', {
-          email,
-          password,
-          redirect: false,
-        });
-
-        if (result?.ok) {
-          onClose();
-          window.location.reload();
-        }
-      }
+      await signUp(email, password);
+      onClose();
+      router.refresh();
     } catch (error: unknown) {
-      if (axios.isAxiosError(error) && error.response) {
-        setMessage(error.response.data?.message || 'An error occurred.');
+      console.error("Sign up error:", error);
+      if (error instanceof Error) {
+        setMessage(error.message || "An error occurred during sign up.");
       } else {
-        setMessage('An error occurred.');
+        setMessage("An error occurred during sign up.");
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    setIsLoading(true);
+    try {
+      await signInWithGoogle();
+      onClose();
+      router.refresh();
+    } catch (error) {
+      console.error("Google sign up error:", error);
+      setMessage("Could not sign up with Google");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGithubSignUp = async () => {
+    setIsLoading(true);
+    try {
+      await signInWithGithub();
+      onClose();
+      router.refresh();
+    } catch (error) {
+      console.error("GitHub sign up error:", error);
+      setMessage("Could not sign up with GitHub");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -73,6 +98,7 @@ export default function SignUpModal({ onClose }: SignUpModalProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 border rounded-sm"
+              disabled={isLoading}
             />
           </div>
           <div>
@@ -83,24 +109,50 @@ export default function SignUpModal({ onClose }: SignUpModalProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 border rounded-sm"
+              disabled={isLoading}
             />
           </div>
           {message && <p className="text-center text-red-500">{message}</p>}
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-300 rounded-sm hover:bg-gray-400"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-500 text-white rounded-sm hover:bg-green-600"
-            >
-              Sign Up
-            </button>
+          <button
+            type="submit"
+            className="w-full px-4 py-2 bg-green-500 text-white rounded-sm hover:bg-green-600 disabled:opacity-50"
+            disabled={isLoading}
+          >
+            {isLoading ? "Signing up..." : "Sign Up with Email"}
+          </button>
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="flex-shrink mx-4 text-gray-400">or</span>
+            <div className="flex-grow border-t border-gray-300"></div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleSignUp}
+            className="w-full px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-sm hover:bg-gray-50 disabled:opacity-50"
+            disabled={isLoading}
+          >
+            Sign up with Google
+          </button>
+
+          <button
+            type="button"
+            onClick={handleGithubSignUp}
+            className="w-full px-4 py-2 bg-gray-800 text-white rounded-sm hover:bg-gray-900 disabled:opacity-50"
+            disabled={isLoading}
+          >
+            Sign up with GitHub
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-gray-300 rounded-sm hover:bg-gray-400 disabled:opacity-50"
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
         </form>
       </div>
     </div>

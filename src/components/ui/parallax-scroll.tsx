@@ -1,10 +1,9 @@
-'use client';
-import { useScroll, useTransform } from 'framer-motion';
-import { useRef } from 'react';
-import { motion } from 'framer-motion';
-import Image from 'next/image';
-import Link from 'next/link';
-import { cn } from '@/lib/utils';
+"use client";
+import { useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface ParallaxBook {
   imageUrl: string;
@@ -22,7 +21,7 @@ export const ParallaxScroll = ({
   className?: string;
 }) => {
   const { scrollYProgress } = useScroll({
-    offset: ['start start', 'end start'],
+    offset: ["start start", "end start"],
   });
   const translateFirst = useTransform(scrollYProgress, [0, 1], [0, -200]);
   const translateSecond = useTransform(scrollYProgress, [0, 1], [0, 200]);
@@ -37,7 +36,7 @@ export const ParallaxScroll = ({
   const fourthPart = books.slice(3 * fifth, 4 * fifth);
   const fifthPart = books.slice(4 * fifth);
 
-  const BookImage = ({ book, idx }: { book: ParallaxBook; idx: number }) => (
+  const BookImage = ({ book }: { book: ParallaxBook }) => (
     <Link
       href={`/books/${book.bookId}?returnQuery=${encodeURIComponent(
         book.query
@@ -57,40 +56,42 @@ export const ParallaxScroll = ({
   );
 
   return (
-    <div className={cn('w-full flex justify-center', className)}>
-      <div className="grid grid-cols-5 items-start w-fit gap-20 py-20">
-        <div className="grid gap-16">
-          {firstPart.map((book, idx) => (
-            <motion.div style={{ y: translateFirst }} key={'grid-1' + idx}>
-              <BookImage book={book} idx={idx} />
+    <div
+      className={cn("h-[500vh] items-start overflow-y-auto w-full", className)}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 items-start max-w-7xl mx-auto gap-10 py-40 px-10">
+        <div className="grid gap-10">
+          {firstPart.map((el, idx) => (
+            <motion.div style={{ y: translateFirst }} key={"grid-1" + idx}>
+              <BookImage book={el} />
             </motion.div>
           ))}
         </div>
-        <div className="grid gap-16">
-          {secondPart.map((book, idx) => (
-            <motion.div style={{ y: translateSecond }} key={'grid-2' + idx}>
-              <BookImage book={book} idx={idx} />
+        <div className="grid gap-10">
+          {secondPart.map((el, idx) => (
+            <motion.div style={{ y: translateSecond }} key={"grid-2" + idx}>
+              <BookImage book={el} />
             </motion.div>
           ))}
         </div>
-        <div className="grid gap-16">
-          {thirdPart.map((book, idx) => (
-            <motion.div style={{ y: translateThird }} key={'grid-3' + idx}>
-              <BookImage book={book} idx={idx} />
+        <div className="grid gap-10">
+          {thirdPart.map((el, idx) => (
+            <motion.div style={{ y: translateThird }} key={"grid-3" + idx}>
+              <BookImage book={el} />
             </motion.div>
           ))}
         </div>
-        <div className="grid gap-16">
-          {fourthPart.map((book, idx) => (
-            <motion.div style={{ y: translateFourth }} key={'grid-4' + idx}>
-              <BookImage book={book} idx={idx} />
+        <div className="grid gap-10">
+          {fourthPart.map((el, idx) => (
+            <motion.div style={{ y: translateFourth }} key={"grid-4" + idx}>
+              <BookImage book={el} />
             </motion.div>
           ))}
         </div>
-        <div className="grid gap-16">
-          {fifthPart.map((book, idx) => (
-            <motion.div style={{ y: translateFifth }} key={'grid-5' + idx}>
-              <BookImage book={book} idx={idx} />
+        <div className="grid gap-10">
+          {fifthPart.map((el, idx) => (
+            <motion.div style={{ y: translateFifth }} key={"grid-5" + idx}>
+              <BookImage book={el} />
             </motion.div>
           ))}
         </div>

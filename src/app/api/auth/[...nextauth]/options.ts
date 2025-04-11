@@ -1,236 +1,176 @@
-import { AuthOptions, Profile } from "next-auth"
-import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import prisma from "@/lib/prisma"
-import GitHubProvider from "next-auth/providers/github"
-import GoogleProvider from "next-auth/providers/google"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { Account } from "next-auth"
-import bcrypt from "bcrypt"
-import { Account as PrismaAccount } from "@prisma/client"
+import type {
+  NextAuthOptions,
+  Session as NextAuthSession,
+  User as NextAuthUser,
+} from "next-auth";
+import { AdapterUser } from "next-auth/adapters";
+import { JWT } from "next-auth/jwt";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { verifyPassword } from "@/lib/auth-utils";
+import { initializeFirebaseAdmin } from "@/lib/firebase/admin";
 
-// Test database connection on startup
-prisma.$connect()
-  .then(() => {
-    console.log('Database connection test successful');
-    return prisma.user.count();
-  })
-  .then((userCount) => {
-    console.log(`Database has ${userCount} users`);
-  })
-  .catch((error) => {
-    console.error('Database connection test failed:', error);
-  });
+// Initialize Firebase Admin
+initializeFirebaseAdmin();
 
-// Log environment and configuration details
-console.log('NextAuth Configuration:');
-console.log('NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
-console.log('Expected Google callback URL:', `${process.env.NEXTAUTH_URL}/api/auth/callback/google`);
-console.log('Expected GitHub callback URL:', `${process.env.NEXTAUTH_URL}/api/auth/callback/github`);
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('Database URL:', process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':****@'));
-
-if (!process.env.NEXTAUTH_URL) {
-  console.error('NEXTAUTH_URL is not set');
+// Extend the default Session type
+interface ExtendedSession extends NextAuthSession {
+  accessToken?: string;
+  userId?: string;
+  provider?: string;
 }
 
-export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma),
+// Log environment and configuration details
+console.log("NextAuth Configuration:");
+console.log("NEXTAUTH_URL:", process.env.NEXTAUTH_URL);
+console.log(
+  "Expected Google callback URL:",
+  `${process.env.NEXTAUTH_URL}/api/auth/callback/google`
+);
+console.log(
+  "Expected GitHub callback URL:",
+  `${process.env.NEXTAUTH_URL}/api/auth/callback/github`
+);
+console.log("NODE_ENV:", process.env.NODE_ENV);
+
+if (!process.env.NEXTAUTH_URL) {
+  console.error("NEXTAUTH_URL is not set");
+}
+
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: 'credentials',
+      name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials');
+          throw new Error("Missing email or password");
         }
 
+        // --- TODO: Replace with Firebase Auth check ---
+        // This section needs to be updated to use Firebase Admin SDK
+        // to verify user credentials instead of Prisma.
+        // Example (conceptual - needs implementation based on your Firebase setup):
+        /*
         try {
-          const user = await prisma.user.findUnique({
-            where: {
-              email: credentials.email
-            }
-          });
-
-          if (!user || !user.password) {
-            throw new Error('Invalid credentials');
+          const userRecord = await admin.auth().getUserByEmail(credentials.email);
+          // Need a way to verify password - Firebase Auth doesn't store passwords directly.
+          // Typically, you handle sign-in client-side with Firebase SDK and 
+          // then verify the ID token server-side, or use custom auth.
+          // For CredentialsProvider, you might need a custom password hashing/checking 
+          // mechanism stored alongside user data if not using Firebase client-side auth.
+          // Placeholder for now:
+          if (!userRecord) { // Basic check if user exists in Firebase Auth
+             throw new Error("No user found with this email.");
           }
-
-          const isCorrectPassword = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-
-          if (!isCorrectPassword) {
-            throw new Error('Invalid credentials');
-          }
-
+          // Password verification logic is missing here because Firebase Auth handles it differently
+          
           return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
+            id: userRecord.uid, // Use Firebase UID
+            name: userRecord.displayName,
+            email: userRecord.email,
+            image: userRecord.photoURL,
+            emailVerified: userRecord.emailVerified,
           };
         } catch (error) {
-          console.error('Database error in authorize:', error);
-          throw new Error('Database error during authentication');
+          console.error("Firebase Auth Error:", error);
+          throw new Error("Authentication failed.");
         }
-      }
-    }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_ID!,
-      clientSecret: process.env.GOOGLE_SECRET!,
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
-          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/google`,
-        },
-      }
-    }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
-      authorization: {
-        params: {
-          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/github`
-        }
-      }
+        */
+        // --- End of TODO section ---
+
+        // Temporary return while Firebase logic is implemented
+        throw new Error("CredentialsProvider needs Firebase implementation");
+      },
     }),
   ],
-  callbacks: {
-    async signIn({ user, account, profile }) {
-      console.log('SignIn Callback - Start');
-      console.log('Auth Request Details:', {
-        callbackUrl: process.env.NEXTAUTH_URL + '/api/auth/callback/' + (account?.provider || 'unknown'),
-        provider: account?.provider,
-        type: account?.type
-      });
-
-      try {
-        // Test database connection before proceeding
-        await prisma.$connect();
-        console.log('Database connection verified in signIn callback');
-
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email! },
-          include: { accounts: true },
-        });
-
-        console.log('Existing user lookup result:', existingUser ? {
-          id: existingUser.id,
-          email: existingUser.email,
-          accountsCount: existingUser.accounts.length
-        } : 'Not found');
-
-        if (existingUser) {
-          const existingAccount = existingUser.accounts.find(
-            (acc: PrismaAccount) => acc.provider === account?.provider
-          );
-
-          if (!existingAccount && account) {
-            console.log('Creating new account link');
-            try {
-              const newAccount = await prisma.account.create({
-                data: {
-                  userId: existingUser.id,
-                  type: account.type,
-                  provider: account.provider,
-                  providerAccountId: account.providerAccountId,
-                  access_token: account.access_token,
-                  token_type: account.token_type,
-                  scope: account.scope,
-                  expires_at: account.expires_at,
-                  id_token: account.id_token,
-                  refresh_token: account.refresh_token
-                },
-              });
-              console.log('Account link created successfully');
-            } catch (error) {
-              console.error('Database error creating account link:', error);
-              return false;
-            }
-          }
-        } else {
-          console.log('No existing user - adapter will create new user');
-          // Test if we can create a user
-          try {
-            const testUser = await prisma.user.create({
-              data: {
-                email: user.email!,
-                name: user.name
-              }
-            });
-            console.log('Test user creation successful');
-            // Clean up test user
-            await prisma.user.delete({ where: { id: testUser.id } });
-          } catch (error) {
-            console.error('Database error testing user creation:', error);
-            return false;
-          }
-        }
-
-        return true;
-      } catch (error) {
-        console.error('Database error in signIn callback:', error);
-        return false;
-      } finally {
-        try {
-          await prisma.$disconnect();
-        } catch (error) {
-          console.error('Error disconnecting from database:', error);
-        }
-      }
-    },
-    async session({ session, token }) {
-      try {
-        if (session?.user) {
-          session.user.id = token.sub as string;
-          
-          // Ensure we have the latest user data
-          const user = await prisma.user.findUnique({
-            where: { id: token.sub as string },
-          });
-          
-          if (user) {
-            session.user.name = user.name;
-            session.user.email = user.email;
-          }
-        }
-        return session;
-      } catch (error) {
-        console.error('Error in session callback:', error);
-        return session;
-      }
-    },
-    async jwt({ token, user, account }) {
-      try {
-        return token;
-      } catch (error) {
-        console.error('Error in JWT callback:', error);
-        return token;
-      }
-    }
-  },
-  pages: {
-    signIn: '/auth/signin',
-  },
   session: {
-    strategy: "jwt" as const
+    strategy: "jwt",
   },
-  debug: true,
+  jwt: {
+    secret: process.env.NEXTAUTH_SECRET,
+  },
   secret: process.env.NEXTAUTH_SECRET,
-  logger: {
-    error(code, metadata) {
-      console.error('Auth Error:', { code, metadata });
+  pages: {
+    signIn: "/auth/signin",
+    // error: '/auth/error', // Optional error page
+    // newUser: '/auth/new-user' // Optional new user page
+  },
+  callbacks: {
+    async jwt({
+      token,
+      user,
+      account,
+    }: {
+      token: JWT;
+      user?: NextAuthUser | AdapterUser | null;
+      account?: { access_token?: string | null; provider: string } | null;
+    }) {
+      if (account && user) {
+        token.accessToken = account.access_token;
+        token.id = user.id;
+        token.provider = account.provider;
+      }
+      return token;
     },
-    warn(code) {
-      console.warn('Auth Warning:', { code });
+    async session({
+      session,
+      token,
+    }: {
+      session: NextAuthSession;
+      token: JWT;
+    }) {
+      const extendedSession = session as ExtendedSession;
+      if (token) {
+        extendedSession.accessToken = token.accessToken as string | undefined;
+        extendedSession.userId = token.sub;
+        extendedSession.provider = token.provider as string | undefined;
+      }
+      return extendedSession;
     },
-    debug(code, metadata) {
-      console.log('Auth Debug:', { code, metadata });
-    }
-  }
-} 
+    async signIn({
+      user,
+      account,
+    }: {
+      user: NextAuthUser | AdapterUser;
+      account?: { provider: string } | null;
+    }) {
+      console.log("signIn callback:", { user, account });
+      if (account?.provider !== "credentials") {
+        return true;
+      }
+      if (user) {
+        return true;
+      }
+      return false;
+    },
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
+    },
+  },
+  events: {
+    async signIn(message: { user: { email?: string | null } }) {
+      console.log("User signed in:", message.user?.email);
+    },
+    async signOut(message: { session: NextAuthSession }) {
+      console.log("User signed out:", message.session);
+    },
+    async createUser(message: { user: NextAuthUser }) {
+      console.log("User created:", message.user);
+    },
+    async updateUser(message: { user: NextAuthUser }) {
+      console.log("User updated:", message.user);
+    },
+    async linkAccount(message: { account: { provider: string } }) {
+      console.log("Account linked:", message.account.provider);
+    },
+    async session(message: { session: NextAuthSession }) {
+      // console.log("Session event:", message.session);
+    },
+  },
+  debug: process.env.NODE_ENV === "development",
+};
