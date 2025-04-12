@@ -1,7 +1,6 @@
 "use client";
 
 import SignInButton from "./SignInButton";
-import SignOutButton from "./SignOutButton";
 import { useState } from "react";
 import SignUpModal from "./SignUpModal";
 import Link from "next/link";
@@ -10,16 +9,18 @@ import eventEmitter from "@/utils/events";
 import BookSearchBar from "./BookSearchBar";
 import { Suspense } from "react";
 import { useAuth } from "@/lib/firebase/auth-context";
+import { SimplifiedUserAvatar } from "./simplified-dropdown";
 
 interface HeaderProps {
   showSearchInHeader: boolean;
 }
 
-function HeaderContent({
-  showSearchInHeader,
-}: {
+interface HeaderContentProps {
   showSearchInHeader: boolean;
-}) {
+  signOut: () => Promise<void>;
+}
+
+function HeaderContent({ showSearchInHeader, signOut }: HeaderContentProps) {
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -36,12 +37,16 @@ function HeaderContent({
   const shouldShowSearch = showSearchInHeader && !isHomePage && user;
 
   if (loading) {
-    return <div className="max-w-7xl mx-auto px-4">Loading...</div>;
+    return (
+      <div className="w-full px-4 sm:px-6 lg:px-8 h-[60px] flex items-center justify-end">
+        <div className="animate-pulse h-8 w-8 bg-gray-300 rounded-full"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4">
-      <div className="flex justify-between items-center">
+    <div className="w-full px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-between items-center h-[60px]">
         <Link
           href="/"
           onClick={handleHomeClick}
@@ -49,10 +54,10 @@ function HeaderContent({
         >
           Book Critics Club
         </Link>
-        <div className="flex-1 flex justify-center">
+        <div className="flex-1 flex justify-center px-4">
           {shouldShowSearch && <BookSearchBar position="header" />}
         </div>
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
           {!user ? (
             <>
               <SignInButton />
@@ -67,7 +72,7 @@ function HeaderContent({
               )}
             </>
           ) : (
-            <SignOutButton />
+            <SimplifiedUserAvatar onSignOut={signOut} />
           )}
         </div>
       </div>
@@ -76,12 +81,20 @@ function HeaderContent({
 }
 
 export default function Header({ showSearchInHeader }: HeaderProps) {
+  const { signOut } = useAuth();
   return (
     <header className="w-full py-4 bg-white shadow-xs">
       <Suspense
-        fallback={<div className="max-w-7xl mx-auto px-4">Loading...</div>}
+        fallback={
+          <div className="w-full px-4 sm:px-6 lg:px-8 h-[60px] flex items-center justify-end">
+            <div className="animate-pulse h-8 w-8 bg-gray-300 rounded-full"></div>
+          </div>
+        }
       >
-        <HeaderContent showSearchInHeader={showSearchInHeader} />
+        <HeaderContent
+          showSearchInHeader={showSearchInHeader}
+          signOut={signOut}
+        />
       </Suspense>
     </header>
   );

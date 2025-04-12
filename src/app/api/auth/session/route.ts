@@ -46,89 +46,98 @@ try {
   auth = null;
 }
 
-// Create a session for a user
-export async function POST(req: NextRequest) {
-  if (!auth) {
-    console.error(
-      "Firebase Admin Auth is not available in /api/auth/session POST route."
-    );
-    return NextResponse.json(
-      { error: "Server configuration error" },
-      { status: 500 }
-    );
-  }
-
+// GET handler for retrieving session information
+export async function GET(req: NextRequest) {
   try {
-    const { idToken } = await req.json();
-    console.log("Received ID token length:", idToken?.length || 0);
-
-    if (!idToken) {
-      console.error("Missing ID token in request");
-      return NextResponse.json({ error: "Missing ID token" }, { status: 400 });
+    if (!auth) {
+      return NextResponse.json(
+        { error: "Firebase Auth not initialized" },
+        { status: 500 }
+      );
     }
 
-    // Use the non-null auth instance
-    console.log("Verifying ID token...");
-    const decodedToken = await auth.verifyIdToken(idToken);
-    console.log("Token verified successfully for UID:", decodedToken.uid);
+    const sessionCookie = cookies().get("session")?.value;
 
-    // Create a session cookie
-    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-    console.log("Creating session cookie...");
-    const sessionCookie = await auth.createSessionCookie(idToken, {
-      expiresIn,
-    });
-    console.log("Session cookie created successfully");
+    // If no session cookie exists, return empty session
+    if (!sessionCookie) {
+      return NextResponse.json({ user: null }, { status: 200 });
+    }
 
-    // Set the cookie
-    cookies().set({
-      name: "session",
-      value: sessionCookie,
-      maxAge: expiresIn / 1000,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      sameSite: "lax",
-    });
-    console.log("Session cookie set successfully");
-
-    return NextResponse.json({ success: true });
+    // Verify the session cookie
+    try {
+      const decodedClaims = await auth.verifySessionCookie(sessionCookie);
+      return NextResponse.json({ user: decodedClaims }, { status: 200 });
+    } catch (error) {
+      // Session cookie is invalid
+      return NextResponse.json({ user: null }, { status: 200 });
+    }
   } catch (error) {
-    console.error("Error creating session:", error);
-    // More detailed error info
-    const errorDetails =
-      error instanceof Error
-        ? {
-            name: error.name,
-            message: error.message,
-            stack: error.stack,
-          }
-        : String(error);
-
-    console.error("Error details:", JSON.stringify(errorDetails, null, 2));
-
+    console.error("Error verifying session:", error);
     return NextResponse.json(
-      { error: "Unauthorized or server error", details: errorDetails },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-// Clear the session cookie
-export async function DELETE() {
-  // No Firebase Admin needed here, just cookie manipulation
+// POST handler for creating sessions
+export async function POST(req: NextRequest) {
   try {
-    cookies().set({
-      name: "session",
-      value: "",
-      maxAge: -1,
-      path: "/",
-      httpOnly: true,
+    if (!auth) {
+      return NextResponse.json(
+        { error: "Firebase Auth not initialized" },
+        { status: 500 }
+      );
+    }
+
+    const { idToken } = await req.json();
+
+    // If no ID token was provided, return an error
+    if (!idToken) {
+      return NextResponse.json(
+        { error: "No ID token provided" },
+        { status: 400 }
+      );
+    }
+
+    // Create a session cookie
+    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+    const sessionCookie = await auth.createSessionCookie(idToken, {
+      expiresIn,
     });
 
-    return NextResponse.json({ success: true });
+    // Set the cookie
+    cookies().set("session", sessionCookie, {
+      maxAge: expiresIn,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
+
+    return NextResponse.json({ status: "success" }, { status: 200 });
   } catch (error) {
-    console.error("Error clearing session:", error);
-    return NextResponse.json({ error: "Failed to log out" }, { status: 500 });
+    console.error("Error creating session:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE handler for deleting sessions (logout)
+export async function DELETE() {
+  try {
+    cookies().set("session", "", {
+      maxAge: 0,
+      path: "/",
+    });
+
+    return NextResponse.json({ status: "success" }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting session:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

@@ -18,6 +18,7 @@ export default function BookSearchBar({
 }: BookSearchBarProps): JSX.Element {
   const [query, setQuery] = useState<string>("");
   const [isFocused, setIsFocused] = useState<boolean>(false);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
   const router = useRouter();
   const wasListeningRef = useRef(false);
   const {
@@ -29,10 +30,10 @@ export default function BookSearchBar({
 
   // Log browser support
   useEffect(() => {
-    console.log(
-      "Browser supports speech recognition:",
-      browserSupportsSpeechRecognition
-    );
+    // console.log(
+    //   "Browser supports speech recognition:",
+    //   browserSupportsSpeechRecognition
+    // );
   }, [browserSupportsSpeechRecognition]);
 
   // Update query when transcript changes during voice input
@@ -74,7 +75,7 @@ export default function BookSearchBar({
     function handleKeyDown(event: KeyboardEvent) {
       // Check if Escape key is pressed and we are currently listening
       if (event.key === "Escape" && listening) {
-        console.log("Escape key pressed, stopping listening.");
+        // console.log("Escape key pressed, stopping listening.");
         SpeechRecognition.stopListening();
       }
     }
@@ -120,19 +121,25 @@ export default function BookSearchBar({
       <div
         className={`relative flex items-center w-full ${
           listening ? "listening" : ""
-        }`}
+        } transition-all duration-200`}
         style={{
           backgroundColor: "#fff",
           border: `1px solid ${listening ? "#f87171" : "#dfe1e5"}`,
           borderRadius: "24px",
           boxShadow: listening
             ? "0 0 15px rgba(239,68,68,0.5)"
-            : isFocused
-            ? "0 1px 6px rgba(32, 33, 36, 0.28)"
-            : "none",
+            : isFocused || isHovered
+            ? "0 2px 8px rgba(32, 33, 36, 0.3)"
+            : "0 1px 4px rgba(32, 33, 36, 0.2)",
           height: "46px",
           padding: "0 16px",
           transition: "all 0.2s ease",
+        }}
+        onMouseEnter={() => {
+          setIsHovered(true);
+        }}
+        onMouseLeave={() => {
+          setIsHovered(false);
         }}
       >
         {/* Search Icon */}
@@ -156,21 +163,23 @@ export default function BookSearchBar({
           placeholder="Type or use the mic..."
           value={query}
           onChange={(e) => {
-            console.log("Input onChange triggered");
+            // console.log("Input onChange triggered");
             setQuery(e.target.value);
             if (listening) {
               SpeechRecognition.stopListening();
               resetTranscript();
             }
           }}
-          onClick={() => console.log("Input onClick triggered")}
+          onClick={() => {
+            /* console.log("Input onClick triggered") */
+          }}
           onFocus={() => {
             setIsFocused(true);
-            console.log("Input onFocus triggered");
+            // console.log("Input onFocus triggered");
           }}
           onBlur={() => {
             setIsFocused(false);
-            console.log("Input onBlur triggered");
+            // console.log("Input onBlur triggered");
           }}
           aria-label="Search"
           style={{
@@ -183,7 +192,7 @@ export default function BookSearchBar({
             padding: 0,
             color: "#202124",
             lineHeight: "46px",
-            filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.2))",
+            filter: "none",
           }}
         />
 
@@ -195,7 +204,7 @@ export default function BookSearchBar({
             strokeWidth={1.8}
             onClick={(e) => {
               e.stopPropagation();
-              console.log("Mic button onClick triggered");
+              // console.log("Mic button onClick triggered");
               handleVoiceSearch();
             }}
             aria-label={listening ? "Stop listening" : "Search by voice"}
