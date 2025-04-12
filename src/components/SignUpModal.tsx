@@ -11,6 +11,7 @@ interface SignUpModalProps {
 export default function SignUpModal({ onClose }: SignUpModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -38,7 +39,7 @@ export default function SignUpModal({ onClose }: SignUpModalProps) {
     setIsLoading(true);
 
     try {
-      await signUp(email, password);
+      await signUp(email, password, username || email.split("@")[0]);
       onClose();
       router.refresh();
     } catch (error: unknown) {
@@ -99,6 +100,17 @@ export default function SignUpModal({ onClose }: SignUpModalProps) {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 border rounded-sm"
               disabled={isLoading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm">Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-3 py-2 border rounded-sm"
+              disabled={isLoading}
+              placeholder="Leave blank to use email username"
             />
           </div>
           <div>
