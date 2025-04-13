@@ -44,10 +44,10 @@ async function getCurrentUserIdToken(): Promise<string | null> {
 
 export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
   const { user: authUser } = useAuth();
-  const [profileData, setProfileData] = useState<User>({
-    username: "User",
+  const [profileData, setProfileData] = useState<User>(() => ({
+    username: authUser?.displayName || "",
     email: authUser?.email || "user@example.com",
-  });
+  }));
 
   // Add an effect to listen for profile changes
   useEffect(() => {
@@ -123,6 +123,8 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
 
   const userInitial = profileData.username
     ? profileData.username.charAt(0).toUpperCase()
+    : authUser?.displayName
+    ? authUser.displayName.charAt(0).toUpperCase()
     : "?";
 
   // Updated logout function
