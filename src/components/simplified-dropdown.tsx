@@ -5,6 +5,17 @@ import Link from "next/link";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { getAuth } from "firebase/auth";
 import { app } from "@/lib/firebase/client";
+import { CustomAvatar } from "./ui/custom-avatar";
+import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 interface User {
   username: string;
@@ -32,14 +43,11 @@ async function getCurrentUserIdToken(): Promise<string | null> {
 }
 
 export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const { user: authUser } = useAuth();
   const [profileData, setProfileData] = useState<User>({
     username: "User",
     email: authUser?.email || "user@example.com",
   });
-  const [loading, setLoading] = useState(true);
 
   // Add an effect to listen for profile changes
   useEffect(() => {
@@ -60,7 +68,6 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
   // for it to be available in the event listener
   async function fetchUserProfile() {
     if (!authUser) {
-      setLoading(false);
       return;
     }
 
@@ -68,7 +75,6 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
       const idToken = await getCurrentUserIdToken();
       if (!idToken) {
         console.warn("No auth token available to load profile in dropdown");
-        setLoading(false);
         return;
       }
 
@@ -92,7 +98,6 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
           username: authUser.displayName || "User",
           email: authUser.email || "user@example.com",
         });
-        setLoading(false);
         return;
       }
 
@@ -108,8 +113,6 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
         username: authUser.displayName || "User",
         email: authUser.email || "user@example.com",
       });
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -122,26 +125,8 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
     ? profileData.username.charAt(0).toUpperCase()
     : "?";
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [dropdownRef]);
-
   // Updated logout function
   async function handleLogout() {
-    setIsOpen(false);
     try {
       await onSignOut();
       console.log("Sign out successful");
@@ -151,59 +136,32 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      {/* Avatar - perfect circle with initial */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          width: "40px",
-          height: "40px",
-          borderRadius: "50%",
-          backgroundColor: "#e5e7eb",
-          color: "#1f2937",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontWeight: "500",
-          fontSize: "16px",
-          cursor: "pointer",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-          border: "2px solid #d1d5db",
-        }}
-        aria-label="User menu"
-      >
-        {loading ? "·" : userInitial}
-      </button>
-
-      {/* Dropdown menu */}
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-          <div className="py-1">
-            {/* User info */}
-            <div className="px-4 py-2 border-b">
-              <p className="text-sm font-medium">{profileData.username}</p>
-              <p className="text-xs text-gray-500">{profileData.email}</p>
-            </div>
-
-            {/* Menu items */}
-            <Link
-              href="/profile"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-              onClick={() => setIsOpen(false)}
-            >
-              Profile
-            </Link>
-
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-t"
-            >
-              Log out
-            </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+          <CustomAvatar initial={userInitial} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">
+              {profileData.username}
+            </p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {profileData.email}
+            </p>
           </div>
-        </div>
-      )}
-    </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <Link href="/profile" passHref>
+            <DropdownMenuItem>Profile</DropdownMenuItem>
+          </Link>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
