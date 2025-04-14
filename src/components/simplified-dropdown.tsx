@@ -17,13 +17,56 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
+// Constants for storage
+const PROFILE_CACHE_KEY = "user_profile_cache";
+const PROFILE_CACHE_EXPIRY = 1000 * 60 * 30; // 30 minutes
+
 interface User {
   username: string;
   email: string;
+  updatedAt?: number;
 }
 
 interface SimplifiedUserAvatarProps {
   onSignOut: () => Promise<void>;
+}
+
+// Function to get cached profile data if available and not expired
+function getCachedProfile(): User | null {
+  try {
+    const cachedData = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!cachedData) return null;
+
+    const profile = JSON.parse(cachedData) as User & { updatedAt: number };
+    const now = Date.now();
+
+    // Check if cache is expired
+    if (now - profile.updatedAt > PROFILE_CACHE_EXPIRY) {
+      localStorage.removeItem(PROFILE_CACHE_KEY);
+      return null;
+    }
+
+    return profile;
+  } catch (error) {
+    console.error("Error reading cached profile:", error);
+    return null;
+  }
+}
+
+// Function to cache profile data
+function cacheProfile(profile: User): void {
+  try {
+    const profileWithTimestamp = {
+      ...profile,
+      updatedAt: Date.now(),
+    };
+    localStorage.setItem(
+      PROFILE_CACHE_KEY,
+      JSON.stringify(profileWithTimestamp)
+    );
+  } catch (error) {
+    console.error("Error caching profile:", error);
+  }
 }
 
 // Function to get Firebase auth token
@@ -44,12 +87,19 @@ async function getCurrentUserIdToken(): Promise<string | null> {
 
 export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
   const { user: authUser } = useAuth();
+
+  // Try to use cached profile first, then fall back to auth data
+  const cachedProfile = getCachedProfile();
+  const initialUsername =
+    cachedProfile?.username || authUser?.displayName || "";
+
   const [profileData, setProfileData] = useState<User>(() => ({
-    username: authUser?.displayName || "",
-    email: authUser?.email || "user@example.com",
+    username: initialUsername,
+    email: cachedProfile?.email || authUser?.email || "user@example.com",
   }));
+
   const [isUserDataReady, setIsUserDataReady] = useState(
-    Boolean(authUser?.displayName)
+    Boolean(initialUsername)
   );
 
   // Add an effect to listen for profile changes
@@ -74,16 +124,24 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
       return;
     }
 
+    // If we already have a display name from auth or cache, we can consider the
+    // data ready while we fetch the latest profile data in the background
+    if (profileData.username) {
+      setIsUserDataReady(true);
+    }
+
     try {
       const idToken = await getCurrentUserIdToken();
       if (!idToken) {
         console.warn("No auth token available to load profile in dropdown");
         if (authUser.displayName) {
-          setProfileData({
+          const updatedProfile = {
             username: authUser.displayName,
             email: authUser.email || "user@example.com",
-          });
+          };
+          setProfileData(updatedProfile);
           setIsUserDataReady(true);
+          cacheProfile(updatedProfile);
         }
         return;
       }
@@ -105,31 +163,42 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
         }
         // Fall back to auth user data
         if (authUser.displayName) {
-          setProfileData({
+          const updatedProfile = {
             username: authUser.displayName,
             email: authUser.email || "user@example.com",
-          });
+          };
+          setProfileData(updatedProfile);
           setIsUserDataReady(true);
+          cacheProfile(updatedProfile);
         }
         return;
       }
 
       const data = await response.json();
       const username = data.username || authUser.displayName || "";
-      setProfileData({
+      const updatedProfile = {
         username,
         email: data.email || authUser.email || "user@example.com",
-      });
+      };
+
+      setProfileData(updatedProfile);
       setIsUserDataReady(Boolean(username));
+
+      // Cache the profile data for faster future loads
+      if (username) {
+        cacheProfile(updatedProfile);
+      }
     } catch (error) {
       console.error("Error loading profile for dropdown:", error);
       // Fall back to auth user data on error
       if (authUser.displayName) {
-        setProfileData({
+        const updatedProfile = {
           username: authUser.displayName,
           email: authUser.email || "user@example.com",
-        });
+        };
+        setProfileData(updatedProfile);
         setIsUserDataReady(true);
+        cacheProfile(updatedProfile);
       }
     }
   }
@@ -139,6 +208,7 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
     if (authUser?.displayName) {
       setIsUserDataReady(true);
     }
+    // Fetch fresh profile data (but we already have initial data from cache if available)
     fetchUserProfile();
   }, [authUser]);
 
