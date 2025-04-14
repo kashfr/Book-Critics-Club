@@ -163,7 +163,10 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
           {userInitial ? (
-            <CustomAvatar initial={userInitial} />
+            <CustomAvatar
+              initial={userInitial}
+              className="border border-gray-300"
+            />
           ) : (
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted border border-gray-300" />
           )}
