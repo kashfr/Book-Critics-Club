@@ -48,6 +48,9 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
     username: authUser?.displayName || "",
     email: authUser?.email || "user@example.com",
   }));
+  const [isUserDataReady, setIsUserDataReady] = useState(
+    Boolean(authUser?.displayName)
+  );
 
   // Add an effect to listen for profile changes
   useEffect(() => {
@@ -75,6 +78,13 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
       const idToken = await getCurrentUserIdToken();
       if (!idToken) {
         console.warn("No auth token available to load profile in dropdown");
+        if (authUser.displayName) {
+          setProfileData({
+            username: authUser.displayName,
+            email: authUser.email || "user@example.com",
+          });
+          setIsUserDataReady(true);
+        }
         return;
       }
 
@@ -94,38 +104,49 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
           );
         }
         // Fall back to auth user data
-        setProfileData({
-          username: authUser.displayName || "User",
-          email: authUser.email || "user@example.com",
-        });
+        if (authUser.displayName) {
+          setProfileData({
+            username: authUser.displayName,
+            email: authUser.email || "user@example.com",
+          });
+          setIsUserDataReady(true);
+        }
         return;
       }
 
       const data = await response.json();
+      const username = data.username || authUser.displayName || "";
       setProfileData({
-        username: data.username || authUser.displayName || "User",
+        username,
         email: data.email || authUser.email || "user@example.com",
       });
+      setIsUserDataReady(Boolean(username));
     } catch (error) {
       console.error("Error loading profile for dropdown:", error);
       // Fall back to auth user data on error
-      setProfileData({
-        username: authUser.displayName || "User",
-        email: authUser.email || "user@example.com",
-      });
+      if (authUser.displayName) {
+        setProfileData({
+          username: authUser.displayName,
+          email: authUser.email || "user@example.com",
+        });
+        setIsUserDataReady(true);
+      }
     }
   }
 
   // Update the original useEffect
   useEffect(() => {
+    if (authUser?.displayName) {
+      setIsUserDataReady(true);
+    }
     fetchUserProfile();
   }, [authUser]);
 
-  const userInitial = profileData.username
-    ? profileData.username.charAt(0).toUpperCase()
-    : authUser?.displayName
-    ? authUser.displayName.charAt(0).toUpperCase()
-    : "?";
+  // Only calculate the initial if we have user data ready
+  const userInitial =
+    isUserDataReady && profileData.username
+      ? profileData.username.charAt(0).toUpperCase()
+      : "";
 
   // Updated logout function
   async function handleLogout() {
@@ -141,7 +162,11 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
-          <CustomAvatar initial={userInitial} />
+          {userInitial ? (
+            <CustomAvatar initial={userInitial} />
+          ) : (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted" />
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
