@@ -165,7 +165,7 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
           {userInitial ? (
             <CustomAvatar initial={userInitial} />
           ) : (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted border border-gray-300" />
           )}
         </Button>
       </DropdownMenuTrigger>
