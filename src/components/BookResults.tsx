@@ -3,10 +3,9 @@ import { useRouter } from 'next/navigation';
 import { Book, SearchResponse } from '@/types/books';
 import Spinner from './Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
 import Link from 'next/link';
 import SaveBookButton from './SaveBookButton';
-import { BookOpen } from 'lucide-react';
+import BookCover from './BookCover';
 
 interface BookResultsProps {
   query: string;
@@ -111,19 +110,12 @@ export default function BookResults({
                 className="cursor-pointer block"
               >
                 <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
-                  {book.volumeInfo.imageLinks?.thumbnail ? (
-                    <Image
-                      src={book.volumeInfo.imageLinks.thumbnail.replace('zoom=1', 'zoom=2')}
-                      alt={book.volumeInfo.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      <BookOpen className="w-12 h-12" />
-                    </div>
-                  )}
+                  <BookCover
+                    googleThumbnail={book.volumeInfo.imageLinks?.thumbnail}
+                    title={book.volumeInfo.title}
+                    author={book.volumeInfo.authors?.[0]}
+                    alt={book.volumeInfo.title}
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div className="mt-3">
