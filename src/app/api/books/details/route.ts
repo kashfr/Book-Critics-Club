@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 
 // Polyfill Buffer for firebase-admin compatibility in some environments
 if (typeof Buffer === "undefined") {
-  global.Buffer = require("buffer").Buffer;
+  import("buffer").then(({ Buffer: BufferPolyfill }) => {
+    global.Buffer = BufferPolyfill;
+  });
 }
 
 // Firestore collection name

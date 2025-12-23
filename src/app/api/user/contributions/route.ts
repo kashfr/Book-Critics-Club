@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const arrayQuery = query(bookDetailsRef, where("contributorIds", "array-contains", userId));
     const arraySnapshot = await getDocs(arrayQuery);
     
-    let docs = [...arraySnapshot.docs];
+    const docs = [...arraySnapshot.docs];
     const existingIds = new Set(docs.map(d => d.id));
     
     // Also check legacy field (for backward compatibility)

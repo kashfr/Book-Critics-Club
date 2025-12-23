@@ -1,8 +1,10 @@
+import { Buffer } from "buffer";
+import admin from "firebase-admin";
+
 // Check if Firebase Admin has already been initialized
-let firebaseAdmin: any;
+let firebaseAdmin: admin.app.App | undefined;
 
 export function initializeFirebaseAdmin() {
-  const { Buffer } = require("buffer");
   if (!global.Buffer) {
     global.Buffer = Buffer;
   }
@@ -10,8 +12,6 @@ export function initializeFirebaseAdmin() {
     (globalThis as any).Buffer = Buffer;
   }
 
-  const admin = require("firebase-admin");
-  
   if (admin.apps.length === 0) {
     try {
       if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
@@ -47,15 +47,15 @@ export { firebaseAdmin };
 
 export const getFirestore = () => {
   initializeFirebaseAdmin();
-  return require("firebase-admin").firestore();
+  return admin.firestore();
 };
 
 export const getAuth = () => {
   initializeFirebaseAdmin();
-  return require("firebase-admin").auth();
+  return admin.auth();
 };
 
 export const getStorage = () => {
   initializeFirebaseAdmin();
-  return require("firebase-admin").storage();
+  return admin.storage();
 };
