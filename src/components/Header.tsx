@@ -8,7 +8,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import eventEmitter from "@/utils/events";
 import BookSearchBar from "./BookSearchBar";
 import { Suspense } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { SimplifiedUserAvatar } from "./simplified-dropdown";
 import NotificationBell from "./NotificationBell";
@@ -27,7 +27,6 @@ function HeaderContent({ showSearchInHeader, signOut }: HeaderContentProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isHomePage = pathname === "/" && !searchParams.get("q");
   const { user, loading } = useAuth();
 
   const handleHomeClick = (e: React.MouseEvent<HTMLAnchorElement>) => {

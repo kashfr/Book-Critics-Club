@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
-import { getFirestore } from "@/lib/firebase/admin";
 
 export const dynamic = "force-dynamic";
+
+// Helper to get Firestore dynamically
+async function getFirestoreAdmin() {
+  const { getFirestore } = await import("@/lib/firebase/admin");
+  return getFirestore();
+}
 
 // GET: Fetch notifications for a user
 export async function GET(request: Request) {
@@ -18,7 +23,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const firestore = getFirestore();
+    const firestore = await getFirestoreAdmin();
     const notificationsRef = firestore.collection(`users/${userId}/notifications`);
     
     let queryFn = notificationsRef.limit(limitCount);
@@ -96,7 +101,7 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    const firestore = getFirestore();
+    const firestore = await getFirestoreAdmin();
     const docRef = await firestore.collection(`users/${targetUserId}/notifications`).add(notificationData);
 
     console.log("POST notifications - Created notification:", docRef.id);
@@ -129,7 +134,7 @@ export async function PATCH(request: Request) {
       );
     }
     
-    const firestore = getFirestore();
+    const firestore = await getFirestoreAdmin();
     const notificationsRef = firestore.collection(`users/${userId}/notifications`);
 
     if (markAllRead) {

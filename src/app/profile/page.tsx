@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
-import { getAuth } from "firebase/auth";
-import { app } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, ControllerRenderProps, FieldPath } from "react-hook-form";

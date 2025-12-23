@@ -4,8 +4,6 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/auth-context";
-import { getAuth } from "firebase/auth";
-import { app } from "@/lib/firebase/client";
 import { CustomAvatar } from "./ui/custom-avatar";
 import { Button } from "./ui/button";
 import {
@@ -67,22 +65,6 @@ function cacheProfile(profile: User): void {
     );
   } catch (error) {
     console.error("Error caching profile:", error);
-  }
-}
-
-// Function to get Firebase auth token
-async function getCurrentUserIdToken(): Promise<string | null> {
-  try {
-    const firebaseAuth = getAuth(app);
-    const currentUser = firebaseAuth.currentUser;
-
-    if (currentUser) {
-      return await currentUser.getIdToken(true);
-    }
-    return null;
-  } catch (error) {
-    console.error("Error getting ID token:", error);
-    return null;
   }
 }
 

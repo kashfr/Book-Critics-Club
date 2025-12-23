@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
-import { auth as adminAuth } from "@/lib/firebase/admin-init";
 import { SavedBook } from "@/types/savedBooks";
 
 export const dynamic = "force-dynamic";
 
-// Helper to get Firestore dynamically
-async function getFirestoreAdmin() {
-  const { getFirestore } = await import("@/lib/firebase/admin");
-  return getFirestore();
+// Helper to get Firebase Admin services dynamically
+async function getFirebaseAdmin() {
+  const adminModule = await import("@/lib/firebase/admin");
+  return {
+    getFirestore: adminModule.getFirestore,
+    getAuth: adminModule.getAuth
+  };
 }
 
 async function getUserIdFromRequest(request: Request): Promise<string | null> {
@@ -15,10 +17,8 @@ async function getUserIdFromRequest(request: Request): Promise<string | null> {
   if (authorization?.startsWith("Bearer ")) {
     const idToken = authorization.split("Bearer ")[1];
     try {
-      if (!adminAuth) {
-        console.error("Firebase Admin SDK not initialized.");
-        return null;
-      }
+      const { getAuth } = await getFirebaseAdmin();
+      const adminAuth = getAuth();
       const decodedToken = await adminAuth.verifyIdToken(idToken);
       return decodedToken.uid;
     } catch (error) {
@@ -41,7 +41,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const bookId = searchParams.get("bookId");
 
-    const firestore = await getFirestoreAdmin();
+    const { getFirestore } = await getFirebaseAdmin();
+    const firestore = getFirestore();
     const savedBooksRef = firestore
       .collection("users")
       .doc(userId)
@@ -87,7 +88,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const firestore = await getFirestoreAdmin();
+    const { getFirestore } = await getFirebaseAdmin();
+    const firestore = getFirestore();
     const bookDocRef = firestore
       .collection("users")
       .doc(userId)
@@ -132,7 +134,8 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const firestore = await getFirestoreAdmin();
+    const { getFirestore } = await getFirebaseAdmin();
+    const firestore = getFirestore();
     const bookDocRef = firestore
       .collection("users")
       .doc(userId)

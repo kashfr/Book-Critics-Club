@@ -2,14 +2,14 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
-import { initializeFirebaseAdmin } from "@/lib/firebase/admin";
 
-// Initialize Firebase Admin SDK if not already initialized
-initializeFirebaseAdmin();
 
 export async function POST(request: Request) {
   try {
+    // Dynamically import Firebase Admin to avoid build-time loading
+    const { initializeFirebaseAdmin, getAuth } = await import("@/lib/firebase/admin");
+    initializeFirebaseAdmin();
+    
     const { email, password } = await request.json();
 
     if (!email || !password) {

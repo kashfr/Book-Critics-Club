@@ -5,6 +5,10 @@ import admin from "firebase-admin";
 let firebaseAdmin: admin.app.App | undefined;
 
 export function initializeFirebaseAdmin() {
+  // During build time, environment variables might not be available
+  // We should handle this gracefully instead of crashing
+  const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  
   if (!global.Buffer) {
     global.Buffer = Buffer;
   }
@@ -15,6 +19,12 @@ export function initializeFirebaseAdmin() {
   if (admin.apps.length === 0) {
     try {
       if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+        if (isBuildTime) {
+          // During build, just log a warning and return undefined
+          // API routes will handle the missing admin gracefully
+          console.warn("Firebase Admin not initialized during build time - this is expected");
+          return undefined;
+        }
         throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not defined");
       }
 
@@ -34,6 +44,10 @@ export function initializeFirebaseAdmin() {
       console.log("Firebase Admin initialized successfully");
     } catch (error) {
       console.error("Error initializing Firebase Admin:", error);
+      if (isBuildTime) {
+        console.warn("Skipping Firebase Admin initialization during build");
+        return undefined;
+      }
       throw new Error("Failed to initialize Firebase Admin");
     }
   } else {
@@ -46,16 +60,25 @@ export function initializeFirebaseAdmin() {
 export { firebaseAdmin };
 
 export const getFirestore = () => {
-  initializeFirebaseAdmin();
+  const app = initializeFirebaseAdmin();
+  if (!app && admin.apps.length === 0) {
+    throw new Error("Firebase Admin is not initialized");
+  }
   return admin.firestore();
 };
 
 export const getAuth = () => {
-  initializeFirebaseAdmin();
+  const app = initializeFirebaseAdmin();
+  if (!app && admin.apps.length === 0) {
+    throw new Error("Firebase Admin is not initialized");
+  }
   return admin.auth();
 };
 
 export const getStorage = () => {
-  initializeFirebaseAdmin();
+  const app = initializeFirebaseAdmin();
+  if (!app && admin.apps.length === 0) {
+    throw new Error("Firebase Admin is not initialized");
+  }
   return admin.storage();
 };
