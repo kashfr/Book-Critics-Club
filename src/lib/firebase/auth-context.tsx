@@ -124,27 +124,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(userCredential.user);
       return userCredential.user;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "An error occurred during Google sign in";
+      let errorMessage = "An error occurred during Google sign in";
+      
+      if (err instanceof Error) {
+        if (err.message.includes('account-exists-with-different-credential')) {
+          errorMessage = "This email is already registered with a different sign-in method. Please sign in using your original method (email/password or GitHub).";
+        } else if (err.message.includes('popup-closed-by-user')) {
+          errorMessage = "Sign-in was cancelled. Please try again.";
+        } else if (err.message.includes('popup-blocked')) {
+          errorMessage = "Pop-up was blocked by your browser. Please allow pop-ups and try again.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
       setError(errorMessage);
-      throw err;
+      throw new Error(errorMessage);
     }
   };
 
   const signInWithGithub = async (): Promise<User> => {
     try {
       setError(null);
+      console.log('Starting GitHub sign-in...');
       const provider = new GithubAuthProvider();
       const userCredential = await signInWithPopup(firebaseAuth, provider);
+      console.log('GitHub OAuth successful, user:', userCredential.user.uid);
 
       // Check if the user already exists in Firestore
       const userDocRef = doc(firebaseDb, "users", userCredential.user.uid);
+      console.log('Checking if user exists in Firestore...');
       const userDoc = await getDoc(userDocRef);
+      console.log('User exists:', userDoc.exists());
 
       // If the user doesn't exist in Firestore, create a document
       if (!userDoc.exists()) {
+        console.log('Creating new user document...');
         await setDoc(userDocRef, {
           uid: userCredential.user.uid,
           email: userCredential.user.email,
@@ -154,17 +169,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           updatedAt: new Date().toISOString(),
           provider: "github",
         });
+        console.log('User document created successfully');
       }
 
       setUser(userCredential.user);
+      console.log('GitHub sign-in complete!');
       return userCredential.user;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "An error occurred during GitHub sign in";
+      console.error('GitHub sign-in error:', err);
+      let errorMessage = "An error occurred during GitHub sign in";
+      
+      if (err instanceof Error) {
+        // Handle specific Firebase auth errors
+        if (err.message.includes('account-exists-with-different-credential')) {
+          errorMessage = "This email is already registered with a different sign-in method. Please sign in using your original method (email/password or Google).";
+        } else if (err.message.includes('popup-closed-by-user')) {
+          errorMessage = "Sign-in was cancelled. Please try again.";
+        } else if (err.message.includes('popup-blocked')) {
+          errorMessage = "Pop-up was blocked by your browser. Please allow pop-ups and try again.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
       setError(errorMessage);
-      throw err;
+      throw new Error(errorMessage);
     }
   };
 

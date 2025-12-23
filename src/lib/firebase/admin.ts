@@ -1,14 +1,26 @@
-import * as admin from "firebase-admin";
-
 // Check if Firebase Admin has already been initialized
-let firebaseAdmin: admin.app.App;
+let firebaseAdmin: any;
 
 export function initializeFirebaseAdmin() {
+  const { Buffer } = require("buffer");
+  if (!global.Buffer) {
+    global.Buffer = Buffer;
+  }
+  if (!(globalThis as any).Buffer) {
+    (globalThis as any).Buffer = Buffer;
+  }
+
+  const admin = require("firebase-admin");
+  
   if (admin.apps.length === 0) {
     try {
+      if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+        throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not defined");
+      }
+
       const serviceAccount = JSON.parse(
         Buffer.from(
-          process.env.FIREBASE_SERVICE_ACCOUNT_KEY || "",
+          process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
           "base64"
         ).toString()
       );
@@ -35,15 +47,15 @@ export { firebaseAdmin };
 
 export const getFirestore = () => {
   initializeFirebaseAdmin();
-  return admin.firestore();
+  return require("firebase-admin").firestore();
 };
 
 export const getAuth = () => {
   initializeFirebaseAdmin();
-  return admin.auth();
+  return require("firebase-admin").auth();
 };
 
 export const getStorage = () => {
   initializeFirebaseAdmin();
-  return admin.storage();
+  return require("firebase-admin").storage();
 };

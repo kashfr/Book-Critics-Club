@@ -7,10 +7,9 @@ import { AdapterUser } from "next-auth/adapters";
 import { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { verifyPassword } from "@/lib/auth-utils";
-import { initializeFirebaseAdmin } from "@/lib/firebase/admin";
 
-// Initialize Firebase Admin
-initializeFirebaseAdmin();
+// Note: Firebase Admin initialization removed here due to Node.js compatibility issues
+// with buffer-equal-constant-time. Authentication is handled client-side via Firebase Auth SDK.
 
 // Extend the default Session type
 interface ExtendedSession extends NextAuthSession {

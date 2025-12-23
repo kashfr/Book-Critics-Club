@@ -2,6 +2,41 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Allow users to read and write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow users to read and write their own subcollections (savedBooks, etc.)
+    // Except notifications which has special rules below
+    match /users/{userId}/{subcollection}/{document} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Special rules for notifications - any authenticated user can CREATE notifications for others
+    // (needed for proposal disputes, approvals, etc.) but only the owner can read/update/delete
+    match /users/{userId}/notifications/{notificationId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow public read for book details (used for shared data like chapters)
+    match /bookDetails/{bookId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Allow public read for chapter proposals, authenticated users can create/update
+    // Only the proposer can delete their own proposal
+    match /chapterProposals/{proposalId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.proposerId;
+    }
+
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }

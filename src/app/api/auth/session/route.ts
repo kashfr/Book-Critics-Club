@@ -1,59 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initializeApp, getApps, cert, App } from "firebase-admin/app";
-import { getAuth, Auth } from "firebase-admin/auth";
-import {
-  adminCredentials,
-  adminProjectId,
-  adminStorageBucket,
-} from "@/lib/firebase/admin-config";
 import { cookies } from "next/headers";
 
-let app: App;
-let auth: Auth | null = null; // Keep auth potentially null initially
+// Helper to get Firebase Auth dynamically (avoid module-level initialization)
+async function getFirebaseAuth() {
+  try {
+    const { initializeApp, getApps, cert } = await import("firebase-admin/app");
+    const { getAuth } = await import("firebase-admin/auth");
+    const { adminCredentials, adminProjectId, adminStorageBucket } = await import(
+      "@/lib/firebase/admin-config"
+    );
 
-// Initialize Admin SDK within the route module scope if needed
-try {
-  console.log("Firebase Admin initialization status:");
-  console.log("- Admin credentials exist:", !!adminCredentials);
-  console.log("- Admin project ID:", adminProjectId);
-  console.log("- Admin storage bucket:", adminStorageBucket);
+    if (!adminCredentials || !adminProjectId || !adminStorageBucket) {
+      console.error("Firebase Admin config missing");
+      return null;
+    }
 
-  if (!getApps().length) {
-    if (adminCredentials && adminProjectId && adminStorageBucket) {
+    let app;
+    if (!getApps().length) {
       app = initializeApp({
         credential: cert(adminCredentials),
         projectId: adminProjectId,
         storageBucket: adminStorageBucket,
       });
-      auth = getAuth(app);
-      console.log("✅ Firebase Admin SDK initialized within API route.");
     } else {
-      console.error(
-        "❌ Firebase Admin SDK not initialized in API route due to missing config."
-      );
+      app = getApps()[0];
     }
-  } else {
-    app = getApps()[0];
-    auth = getAuth(app); // Get auth from existing app
-    console.log("✅ Using existing Firebase Admin app");
+
+    return getAuth(app);
+  } catch (error) {
+    console.error("Failed to initialize Firebase Admin:", error);
+    return null;
   }
-} catch (error) {
-  console.error(
-    "❌ Failed to initialize Firebase Admin SDK in API route:",
-    error
-  );
-  // Ensure auth remains null on error
-  auth = null;
 }
 
 // GET handler for retrieving session information
 export async function GET(req: NextRequest) {
   try {
+    const auth = await getFirebaseAuth();
+    
     if (!auth) {
-      return NextResponse.json(
-        { error: "Firebase Auth not initialized" },
-        { status: 500 }
-      );
+      // Return empty session instead of error to prevent client-side errors
+      return NextResponse.json({ user: null }, { status: 200 });
     }
 
     const sessionCookie = cookies().get("session")?.value;
@@ -73,16 +60,16 @@ export async function GET(req: NextRequest) {
     }
   } catch (error) {
     console.error("Error verifying session:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    // Return empty session instead of error
+    return NextResponse.json({ user: null }, { status: 200 });
   }
 }
 
 // POST handler for creating sessions
 export async function POST(req: NextRequest) {
   try {
+    const auth = await getFirebaseAuth();
+    
     if (!auth) {
       return NextResponse.json(
         { error: "Firebase Auth not initialized" },

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { getFirestore } from "firebase-admin/firestore"; // Correct import for Firestore Admin SDK
-import { initializeFirebaseAdmin } from "@/lib/firebase/admin";
 
-// Initialize Firebase Admin SDK
-initializeFirebaseAdmin();
+// Polyfill Buffer for firebase-admin compatibility in some environments
+if (typeof Buffer === "undefined") {
+  global.Buffer = require("buffer").Buffer;
+}
 
 // Firestore collection name
 const BOOK_DETAILS_COLLECTION = "bookDetails";
@@ -41,24 +41,21 @@ export async function GET(request: Request) {
     console.log("Successfully fetched from Google Books API");
 
     // Fetch chapter count from Firestore
-    let chapters = 0; // Default to 0 chapters
+    let chapters = 0;
     try {
+      // Use dynamic import and custom initialization to avoid bundling issues
+      const { getFirestore } = await import("@/lib/firebase/admin");
       const firestore = getFirestore();
-      // Use Admin SDK pattern
+      
       const docRef = firestore.collection(BOOK_DETAILS_COLLECTION).doc(id);
       const docSnap = await docRef.get();
 
       if (docSnap.exists) {
-        // Correct usage: boolean property
         const firestoreData = docSnap.data();
         if (firestoreData && typeof firestoreData.chapters === "number") {
           chapters = firestoreData.chapters;
         }
         console.log("Fetched chapter count from Firestore:", chapters);
-      } else {
-        console.log(
-          "No chapter count found in Firestore for this book, defaulting to 0."
-        );
       }
     } catch (firestoreError) {
       console.error("Firestore error fetching chapters:", firestoreError);

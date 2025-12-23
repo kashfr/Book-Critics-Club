@@ -1,22 +1,16 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Book, SearchResponse } from '@/types/books';
 import Spinner from './Spinner';
-import { ParallaxScroll } from './ui/parallax-scroll';
+import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import Link from 'next/link';
+import SaveBookButton from './SaveBookButton';
+import { BookOpen } from 'lucide-react';
 
 interface BookResultsProps {
   query: string;
   initialPage: number;
-}
-
-interface ParallaxBook {
-  imageUrl: string;
-  bookId: string;
-  title: string;
-  query: string;
-  currentPage: number;
 }
 
 export default function BookResults({
@@ -75,7 +69,7 @@ export default function BookResults({
 
   if (loading) {
     return (
-      <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center z-50">
+      <div className="fixed inset-0 flex justify-center items-center z-50 bg-background/50 backdrop-blur-sm">
         <Spinner />
       </div>
     );
@@ -83,55 +77,90 @@ export default function BookResults({
 
   if (error) {
     return (
-      <div className="w-full text-center py-8 text-red-500">Error: {error}</div>
+      <div className="w-full text-center py-20 text-destructive font-medium">
+        Error: {error}
+      </div>
     );
   }
 
   if (books.length === 0) {
     return (
-      <div className="w-full text-center py-8">
+      <div className="w-full text-center py-20 text-muted-foreground">
         No books found for &quot;{query}&quot;
       </div>
     );
   }
 
-  // Transform books into the format needed for ParallaxScroll
-  const bookImages: ParallaxBook[] = books
-    .map((book) => {
-      if (!book.volumeInfo.imageLinks?.thumbnail) return null;
-      return {
-        imageUrl: book.volumeInfo.imageLinks.thumbnail.replace(
-          'zoom=1',
-          'zoom=2'
-        ),
-        bookId: book.id,
-        title: book.volumeInfo.title,
-        query: query,
-        currentPage: currentPage,
-      };
-    })
-    .filter((book): book is ParallaxBook => book !== null);
-
   return (
-    <div className="w-full mx-auto pt-8">
-      <ParallaxScroll books={bookImages} className="mb-8" />
+    <div className="w-full max-w-6xl mx-auto px-4 py-12">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <AnimatePresence mode="popLayout">
+          {books.map((book, index) => (
+            <motion.div
+              key={book.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ delay: index * 0.05 }}
+              className="group relative"
+            >
+              <Link
+                href={`/books/${book.id}?returnQuery=${encodeURIComponent(
+                  query
+                )}&returnPage=${currentPage}`}
+                className="cursor-pointer block"
+              >
+                <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
+                  {book.volumeInfo.imageLinks?.thumbnail ? (
+                    <Image
+                      src={book.volumeInfo.imageLinks.thumbnail.replace('zoom=1', 'zoom=2')}
+                      alt={book.volumeInfo.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      <BookOpen className="w-12 h-12" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-3">
+                  <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                    {book.volumeInfo.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                    {book.volumeInfo.authors?.join(', ') || 'Unknown Author'}
+                  </p>
+                </div>
+              </Link>
+
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all">
+                <SaveBookButton book={book} variant="default" size="sm" showText={false} />
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
 
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
+        <div className="flex justify-center items-center gap-6 mt-16 pt-8 border-t border-border">
           <button
             onClick={() => fetchBooks(currentPage - 1)}
             disabled={currentPage === 1 || loading}
-            className="px-4 py-2 border rounded-sm disabled:opacity-50"
+            className="px-6 py-2 glass-morphism rounded-full disabled:opacity-50 hover:bg-white/5 transition-colors font-medium text-sm"
           >
             Previous
           </button>
-          <span className="px-4 py-2">
-            Page {currentPage} of {totalPages}
+          <span className="text-sm font-medium text-muted-foreground">
+            Page <span className="text-foreground">{currentPage}</span> of {totalPages}
           </span>
           <button
             onClick={() => fetchBooks(currentPage + 1)}
             disabled={currentPage === totalPages || loading}
-            className="px-4 py-2 border rounded-sm disabled:opacity-50"
+            className="px-6 py-2 glass-morphism rounded-full disabled:opacity-50 hover:bg-white/5 transition-colors font-medium text-sm"
           >
             Next
           </button>

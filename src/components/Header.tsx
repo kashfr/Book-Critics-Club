@@ -8,8 +8,10 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import eventEmitter from "@/utils/events";
 import BookSearchBar from "./BookSearchBar";
 import { Suspense } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { SimplifiedUserAvatar } from "./simplified-dropdown";
+import NotificationBell from "./NotificationBell";
 
 interface HeaderProps {
   showSearchInHeader: boolean;
@@ -34,7 +36,8 @@ function HeaderContent({ showSearchInHeader, signOut }: HeaderContentProps) {
     router.push("/");
   };
 
-  const shouldShowSearch = showSearchInHeader && !isHomePage && user;
+  // Always show search in header for all visitors
+  const shouldShowSearch = showSearchInHeader;
 
   if (loading) {
     return (
@@ -43,36 +46,53 @@ function HeaderContent({ showSearchInHeader, signOut }: HeaderContentProps) {
       </div>
     );
   }
-
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-between items-center h-[60px]">
-        <Link
-          href="/"
-          onClick={handleHomeClick}
-          className="text-3xl font-['var(--font-raleway)'] font-bold text-gray-800"
-        >
-          Book Critics Club
-        </Link>
-        <div className="flex-1 flex justify-center px-4">
+      <div className="grid grid-cols-[auto_1fr_auto] sm:grid-cols-3 items-center h-[60px] gap-2 sm:gap-4">
+        {/* Left section - Logo */}
+        <div className="flex justify-start">
+          <Link
+            href="/"
+            onClick={handleHomeClick}
+            className="text-base sm:text-xl font-black tracking-tighter text-foreground hover:opacity-80 transition-opacity whitespace-nowrap"
+          >
+            BOOK CRITICS <span className="text-primary italic">CLUB</span>
+          </Link>
+        </div>
+
+        {/* Center section - Search Bar */}
+        <div className="flex justify-center col-span-1">
           {shouldShowSearch && <BookSearchBar position="header" />}
         </div>
-        <div className="flex items-center gap-4">
+
+        {/* Right section - Navigation & User */}
+        <div className="flex items-center justify-end gap-2 sm:gap-4">
           {!user ? (
             <>
               <SignInButton />
               <button
                 onClick={() => setIsSignUpOpen(true)}
-                className="px-4 py-2 bg-green-500 text-white rounded-sm hover:bg-green-600"
+                className="px-3 sm:px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition-opacity text-sm"
               >
                 Sign Up
               </button>
-              {isSignUpOpen && (
-                <SignUpModal onClose={() => setIsSignUpOpen(false)} />
-              )}
+              <AnimatePresence>
+                {isSignUpOpen && (
+                  <SignUpModal onClose={() => setIsSignUpOpen(false)} />
+                )}
+              </AnimatePresence>
             </>
           ) : (
-            <SimplifiedUserAvatar onSignOut={signOut} />
+            <>
+              <Link
+                href="/library"
+                className="hidden md:block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+              >
+                My Library
+              </Link>
+              <NotificationBell />
+              <SimplifiedUserAvatar onSignOut={signOut} />
+            </>
           )}
         </div>
       </div>
@@ -83,11 +103,11 @@ function HeaderContent({ showSearchInHeader, signOut }: HeaderContentProps) {
 export default function Header({ showSearchInHeader }: HeaderProps) {
   const { signOut } = useAuth();
   return (
-    <header className="w-full py-4 bg-white shadow-xs">
+    <header className="fixed top-0 left-0 right-0 z-50 glass-morphism py-2 border-b border-white/10">
       <Suspense
         fallback={
           <div className="w-full px-4 sm:px-6 lg:px-8 h-[60px] flex items-center justify-end">
-            <div className="animate-pulse h-8 w-8 bg-gray-300 rounded-full"></div>
+            <div className="animate-pulse h-8 w-8 bg-white/10 rounded-full"></div>
           </div>
         }
       >

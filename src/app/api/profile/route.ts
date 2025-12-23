@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
-import { auth, firestore } from "@/lib/firebase/admin-init"; // Corrected import path
 
-// Function to get user ID from token (replace with your actual auth logic)
+export const dynamic = "force-dynamic";
+
+// Helper to get Firebase Admin services dynamically (avoid module-level initialization)
+async function getFirebaseAdmin() {
+  try {
+    const { getAuth, getFirestore } = await import("@/lib/firebase/admin");
+    return { auth: getAuth(), firestore: getFirestore() };
+  } catch (error) {
+    console.error("Failed to initialize Firebase Admin:", error);
+    return { auth: null, firestore: null };
+  }
+}
+
+// Function to get user ID from token
 async function getUserIdFromRequest(request: Request): Promise<string | null> {
   const authorization = request.headers.get("Authorization");
   if (authorization?.startsWith("Bearer ")) {
     const idToken = authorization.split("Bearer ")[1];
     try {
+      const { auth } = await getFirebaseAdmin();
       if (!auth) {
         console.error("Firebase Admin SDK not initialized.");
         return null;
@@ -30,6 +43,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { firestore } = await getFirebaseAdmin();
     if (!firestore) {
       console.error("Firestore not initialized.");
       return NextResponse.json(
@@ -68,6 +82,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { firestore } = await getFirebaseAdmin();
     if (!firestore) {
       console.error(
         "Firestore not initialized. Check Firebase Admin SDK setup."
@@ -80,19 +95,16 @@ export async function POST(request: Request) {
 
     const profileData = await request.json();
 
-    // TODO: Add validation for profileData here
-
     // Reference to the user's document in the 'users' collection
     const userDocRef = firestore.collection("users").doc(userId);
 
     // Update the user document
-    await userDocRef.set(profileData, { merge: true }); // Use set with merge:true to update/create
+    await userDocRef.set(profileData, { merge: true });
 
     console.log(`Profile updated successfully for user: ${userId}`);
     return NextResponse.json({ message: "Profile updated successfully" });
   } catch (error) {
     console.error("Error updating profile:", error);
-    // Check if error is a known type or cast to Error
     const errorMessage =
       error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json({ error: errorMessage }, { status: 500 });

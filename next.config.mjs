@@ -30,6 +30,9 @@ const nextConfig = {
     config.cache = false;
     return config;
   },
+  experimental: {
+    serverComponentsExternalPackages: ["firebase-admin"],
+  },
 };
 
 export default nextConfig;

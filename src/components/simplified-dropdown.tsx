@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { getAuth } from "firebase/auth";
 import { app } from "@/lib/firebase/client";
@@ -87,6 +88,7 @@ async function getCurrentUserIdToken(): Promise<string | null> {
 
 export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
   const { user: authUser } = useAuth();
+  const router = useRouter();
 
   // Try to use cached profile first, then fall back to auth data
   const cachedProfile = getCachedProfile();
@@ -119,86 +121,49 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
 
   // We need to move fetchUserProfile outside the first useEffect
   // for it to be available in the event listener
+  // We need to move fetchUserProfile outside the first useEffect
+  // for it to be available in the event listener
   async function fetchUserProfile() {
     if (!authUser) {
       return;
     }
 
-    // If we already have a display name from auth or cache, we can consider the
-    // data ready while we fetch the latest profile data in the background
-    if (profileData.username) {
-      setIsUserDataReady(true);
-    }
-
     try {
-      const idToken = await getCurrentUserIdToken();
-      if (!idToken) {
-        console.warn("No auth token available to load profile in dropdown");
-        if (authUser.displayName) {
-          const updatedProfile = {
-            username: authUser.displayName,
-            email: authUser.email || "user@example.com",
-          };
-          setProfileData(updatedProfile);
-          setIsUserDataReady(true);
-          cacheProfile(updatedProfile);
-        }
-        return;
+      // Use client-side Firestore directly
+      const { doc, getDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase/client');
+
+      const userDocRef = doc(db, 'users', authUser.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      let firestoreUsername = "";
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        firestoreUsername = data.username || "";
       }
 
-      const response = await fetch("/api/profile", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+      // Prefer Firestore username -> Auth displayName -> empty
+      const finalUsername = firestoreUsername || authUser.displayName || "";
+      const finalEmail = authUser.email || "user@example.com";
 
-      if (!response.ok) {
-        if (response.status !== 404) {
-          // 404 is expected for new users
-          console.error(
-            "Failed to load profile for dropdown:",
-            response.status
-          );
-        }
-        // Fall back to auth user data
-        if (authUser.displayName) {
-          const updatedProfile = {
-            username: authUser.displayName,
-            email: authUser.email || "user@example.com",
-          };
-          setProfileData(updatedProfile);
-          setIsUserDataReady(true);
-          cacheProfile(updatedProfile);
-        }
-        return;
-      }
-
-      const data = await response.json();
-      const username = data.username || authUser.displayName || "";
       const updatedProfile = {
-        username,
-        email: data.email || authUser.email || "user@example.com",
+        username: finalUsername,
+        email: finalEmail,
       };
 
       setProfileData(updatedProfile);
-      setIsUserDataReady(Boolean(username));
-
-      // Cache the profile data for faster future loads
-      if (username) {
-        cacheProfile(updatedProfile);
-      }
+      setIsUserDataReady(Boolean(finalUsername));
+      cacheProfile(updatedProfile);
     } catch (error) {
       console.error("Error loading profile for dropdown:", error);
-      // Fall back to auth user data on error
+      
+      // Fallback to auth data if Firestore fails
       if (authUser.displayName) {
-        const updatedProfile = {
-          username: authUser.displayName,
-          email: authUser.email || "user@example.com",
-        };
-        setProfileData(updatedProfile);
-        setIsUserDataReady(true);
-        cacheProfile(updatedProfile);
+         setProfileData({
+            username: authUser.displayName,
+            email: authUser.email || "user@example.com"
+         });
+         setIsUserDataReady(true);
       }
     }
   }
@@ -223,6 +188,8 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
     try {
       await onSignOut();
       console.log("Sign out successful");
+      // Redirect to home page after sign out
+      router.push('/');
     } catch (error) {
       console.error("Sign out failed:", error);
     }
@@ -255,6 +222,12 @@ export function SimplifiedUserAvatar({ onSignOut }: SimplifiedUserAvatarProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
+          <Link href="/proposals" passHref>
+            <DropdownMenuItem>Proposals</DropdownMenuItem>
+          </Link>
+          <Link href="/contributions" passHref>
+            <DropdownMenuItem>My Contributions</DropdownMenuItem>
+          </Link>
           <Link href="/profile" passHref>
             <DropdownMenuItem>Profile</DropdownMenuItem>
           </Link>
