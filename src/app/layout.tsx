@@ -39,7 +39,7 @@ export default function RootLayout({
             <ToastProvider>
               <ErrorBoundary>
                 <Header showSearchInHeader={true} />
-                <main className="pt-20 flex-1 flex flex-col">
+                <main className="pt-16 sm:pt-20 flex-1 flex flex-col overflow-x-hidden">
                   {children}
                 </main>
               </ErrorBoundary>

@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { BookOpen } from 'lucide-react';
-import { getOpenLibraryCover } from '@/utils/bookCoverFallback';
 
 interface BookCoverProps {
+  /** Custom cover URL from Firebase Storage (highest priority) */
+  customCoverUrl?: string | null;
   /** Google Books thumbnail URL */
   googleThumbnail?: string;
   /** Book title for fallback search */
@@ -24,15 +25,17 @@ interface BookCoverProps {
   priority?: boolean;
 }
 
-type CoverState = 'loading' | 'google' | 'fallback' | 'none';
-
 /**
  * BookCover component that displays a book cover image with automatic fallback.
- * 1. First tries Google Books thumbnail
- * 2. If not available, fetches from Open Library
- * 3. Falls back to a book icon if no cover found
+ * 
+ * Priority order:
+ * 1. Custom cover (user uploaded, from Firebase Storage)
+ * 2. Google Books thumbnail (fast, usually available)
+ * 3. Server Proxy (tries B&N/Amazon/OpenLibrary)
+ * 4. Generic book icon
  */
 export default function BookCover({
+  customCoverUrl,
   googleThumbnail,
   title,
   author,
@@ -42,58 +45,62 @@ export default function BookCover({
   sizes = '(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw',
   priority = false,
 }: BookCoverProps) {
-  const [coverState, setCoverState] = useState<CoverState>(
-    googleThumbnail ? 'google' : 'loading'
-  );
-  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [fallbackStage, setFallbackStage] = useState<'custom' | 'google' | 'proxy' | 'none'>('custom');
 
   useEffect(() => {
-    // If we already have a Google thumbnail, no need to fetch fallback
-    if (googleThumbnail) {
-      setCoverState('google');
-      return;
+    // Priority: Custom cover > Google thumbnail > Proxy
+    if (customCoverUrl) {
+      setImageUrl(customCoverUrl);
+      setFallbackStage('custom');
+    } else if (googleThumbnail) {
+      setImageUrl(googleThumbnail.replace('zoom=1', 'zoom=2'));
+      setFallbackStage('google');
+    } else if (isbn) {
+      setImageUrl(`/api/books/cover?isbn=${encodeURIComponent(isbn)}`);
+      setFallbackStage('proxy');
+    } else {
+      setFallbackStage('none');
     }
+  }, [customCoverUrl, googleThumbnail, isbn]);
 
-    // Fetch fallback cover from Open Library
-    let cancelled = false;
+  const triggerFallback = () => {
+    if (fallbackStage === 'custom' && googleThumbnail) {
+      console.log('Custom cover failed, trying Google...');
+      setImageUrl(googleThumbnail.replace('zoom=1', 'zoom=2'));
+      setFallbackStage('google');
+    } else if (fallbackStage === 'custom' && isbn) {
+      console.log('Custom cover failed, trying proxy...');
+      setImageUrl(`/api/books/cover?isbn=${encodeURIComponent(isbn)}`);
+      setFallbackStage('proxy');
+    } else if (fallbackStage === 'google' && isbn) {
+      console.log('Google thumbnail failed, trying proxy...');
+      setImageUrl(`/api/books/cover?isbn=${encodeURIComponent(isbn)}`);
+      setFallbackStage('proxy');
+    } else {
+      setFallbackStage('none');
+    }
+  };
+
+  const handleError = () => {
+    console.log(`Image load error at stage: ${fallbackStage}`);
+    triggerFallback();
+  };
+
+  // Detect placeholder images that load successfully but are blank/tiny
+  const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
     
-    async function fetchFallback() {
-      try {
-        const url = await getOpenLibraryCover({ isbn, title, author });
-        if (!cancelled) {
-          if (url) {
-            setFallbackUrl(url);
-            setCoverState('fallback');
-          } else {
-            setCoverState('none');
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching fallback cover:', error);
-        if (!cancelled) {
-          setCoverState('none');
-        }
-      }
+    // Google's placeholder images are typically very small (1x1 or similar)
+    // Real book covers should be at least 50x75 pixels
+    if (fallbackStage === 'google' && (img.naturalWidth < 50 || img.naturalHeight < 50)) {
+      console.log(`Detected placeholder image (${img.naturalWidth}x${img.naturalHeight}), trying fallback...`);
+      triggerFallback();
     }
+  };
 
-    fetchFallback();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [googleThumbnail, isbn, title, author]);
-
-  // Loading state - show subtle placeholder
-  if (coverState === 'loading') {
-    return (
-      <div className={`flex items-center justify-center h-full bg-muted/20 animate-pulse ${className}`}>
-        <BookOpen className="w-8 h-8 text-muted-foreground/50" />
-      </div>
-    );
-  }
-
-  // No cover found - show book icon
-  if (coverState === 'none') {
+  // Show book icon if no valid image
+  if (fallbackStage === 'none' || !imageUrl) {
     return (
       <div className={`flex items-center justify-center h-full text-muted-foreground ${className}`}>
         <BookOpen className="w-12 h-12" />
@@ -101,10 +108,8 @@ export default function BookCover({
     );
   }
 
-  // Determine which URL to use
-  const imageUrl = coverState === 'google' 
-    ? googleThumbnail!.replace('zoom=1', 'zoom=2')
-    : fallbackUrl!;
+  const isProxyUrl = imageUrl.startsWith('/api/');
+  const isFirebaseUrl = imageUrl.includes('storage.googleapis.com') || imageUrl.includes('firebasestorage.googleapis.com');
 
   return (
     <Image
@@ -114,23 +119,9 @@ export default function BookCover({
       className={`object-cover group-hover:scale-105 transition-transform duration-300 ${className}`}
       sizes={sizes}
       priority={priority}
-      onError={() => {
-        // If image fails to load, try fallback or show icon
-        if (coverState === 'google' && !fallbackUrl) {
-          // Google image failed, try Open Library
-          setCoverState('loading');
-          getOpenLibraryCover({ isbn, title, author }).then((url) => {
-            if (url) {
-              setFallbackUrl(url);
-              setCoverState('fallback');
-            } else {
-              setCoverState('none');
-            }
-          });
-        } else {
-          setCoverState('none');
-        }
-      }}
+      onError={handleError}
+      onLoad={handleLoad}
+      unoptimized={isProxyUrl || isFirebaseUrl}
     />
   );
 }

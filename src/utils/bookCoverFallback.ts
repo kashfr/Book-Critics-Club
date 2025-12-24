@@ -94,6 +94,24 @@ export async function searchOpenLibraryCover(
 }
 
 /**
+ * Get a Barnes & Noble cover URL using ISBN
+ * Note: strict bot protection, client-side only
+ */
+export function getBarnesAndNobleCover(isbn: string): string {
+  const cleanISBN = isbn.replace(/[-\s]/g, '');
+  return `https://prodimage.images-bn.com/pimages/${cleanISBN}_p0_v1_s600x595.jpg`;
+}
+
+/**
+ * Get an Amazon cover URL using ISBN
+ * Note: legacy API, may be flaky
+ */
+export function getAmazonCover(isbn: string): string {
+  const cleanISBN = isbn.replace(/[-\s]/g, '');
+  return `https://images-na.ssl-images-amazon.com/images/P/${cleanISBN}.01._SCLZZZZZZZ_.jpg`;
+}
+
+/**
  * Get a fallback book cover URL from Open Library
  * Tries ISBN first, then falls back to title/author search
  * @param options - Book information for lookup

@@ -5,7 +5,8 @@ import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { db } from '@/lib/firebase/client';
 import { doc, setDoc } from 'firebase/firestore';
-import Image from 'next/image';
+import BookCover from '@/components/BookCover';
+import CoverUploadButton from '@/components/CoverUploadButton';
 import { Book } from '@/types/books';
 import ChapterCountBadge from '@/components/ChapterCountBadge';
 import PendingProposalBanner from '@/components/PendingProposalBanner';
@@ -32,6 +33,7 @@ function BookPageContent() {
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<number | null>(null);
   const [chapterDetails, setChapterDetails] = useState<ChapterDetails | null>(null);
+  const [customCoverUrl, setCustomCoverUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const handleBack = () => {
@@ -121,6 +123,20 @@ function BookPageContent() {
         console.log('Book data received:', bookData);
         setBook(bookData);
 
+        // Fetch custom cover from client-side Firestore
+        try {
+          const { doc, getDoc } = await import('firebase/firestore');
+          const coverDoc = await getDoc(doc(db, 'bookCovers', bookId));
+          if (coverDoc.exists()) {
+            const coverData = coverDoc.data();
+            if (coverData?.coverUrl) {
+              setCustomCoverUrl(coverData.coverUrl);
+            }
+          }
+        } catch (coverError) {
+          console.error('Error fetching custom cover:', coverError);
+        }
+
         // Fetch chapters data with full details
         console.log('Fetching chapters for:', bookId);
         const chaptersUrl = user 
@@ -201,20 +217,28 @@ function BookPageContent() {
           <div className="space-y-8">
             <div className="relative aspect-[2/3] w-full max-w-[350px] mx-auto group">
               <div className="absolute inset-0 bg-primary/20 blur-3xl group-hover:bg-primary/30 transition-colors -z-10" />
-              {book.volumeInfo.imageLinks?.thumbnail && (
-                <Image
-                  src={book.volumeInfo.imageLinks.thumbnail.replace(
-                    'zoom=1',
-                    'zoom=3'
-                  )}
-                  alt={book.volumeInfo.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 350px"
-                  className="rounded-2xl shadow-2xl object-cover"
-                  priority
-                />
-              )}
+              <BookCover
+                customCoverUrl={customCoverUrl}
+                googleThumbnail={book.volumeInfo.imageLinks?.thumbnail}
+                title={book.volumeInfo.title}
+                author={book.volumeInfo.authors?.[0]}
+                isbn={book.volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier || 
+                      book.volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier}
+                alt={book.volumeInfo.title}
+                className="rounded-2xl shadow-2xl"
+                sizes="(max-width: 768px) 100vw, 350px"
+                priority
+              />
             </div>
+
+            {/* Cover Upload Button */}
+            {user && (
+              <CoverUploadButton
+                bookId={book.id}
+                onUploadSuccess={(url) => setCustomCoverUrl(url)}
+                className="mt-4"
+              />
+            )}
 
             <div className="space-y-4">
               {book.volumeInfo.previewLink && (

@@ -91,8 +91,8 @@ export default function BookResults({
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-12">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-8">
         <AnimatePresence mode="popLayout">
           {books.map((book, index) => (
             <motion.div
@@ -111,9 +111,12 @@ export default function BookResults({
               >
                 <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors">
                   <BookCover
+                    customCoverUrl={book.customCoverUrl}
                     googleThumbnail={book.volumeInfo.imageLinks?.thumbnail}
                     title={book.volumeInfo.title}
                     author={book.volumeInfo.authors?.[0]}
+                    isbn={book.volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_13')?.identifier || 
+                          book.volumeInfo.industryIdentifiers?.find(id => id.type === 'ISBN_10')?.identifier}
                     alt={book.volumeInfo.title}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

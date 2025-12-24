@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
+    const { initializeFirebaseAdmin, getFirestore } = await import("@/lib/firebase/admin");
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
     const page = searchParams.get('page') || '1';
@@ -31,6 +32,49 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
+    
+    // Enrich with custom covers from Firestore
+    if (data.items && data.items.length > 0) {
+      try {
+        initializeFirebaseAdmin();
+        const db = getFirestore();
+        const ids = data.items.map((item: any) => item.id);
+        
+        // Firestore 'in' query supports up to 30 items. 
+        // Google returns 40 by default, so we might need to batch or just get all for now if small enough.
+        // Actually, let's just do individual reads in parallel for simplicity given the scale (<40)
+        // or batch them if we want to be fancy. 'getAll' is good.
+        
+        const refs = ids.map((id: string) => db.collection('bookCovers').doc(id));
+        const snapshots = await db.getAll(...refs);
+        
+        const coverMap = new Map();
+        snapshots.forEach((snap) => {
+          if (snap.exists) {
+            const docData = snap.data();
+            if (docData?.coverUrl) {
+              coverMap.set(snap.id, docData.coverUrl);
+            }
+          }
+        });
+
+        // Merge back into items
+        data.items = data.items.map((item: any) => {
+          if (coverMap.has(item.id)) {
+            return {
+              ...item,
+              customCoverUrl: coverMap.get(item.id)
+            };
+          }
+          return item;
+        });
+
+      } catch (firestoreError) {
+        console.error('Error fetching custom covers:', firestoreError);
+        // Continue without custom covers on error
+      }
+    }
+
     console.log('Google Books API response:', {
       totalItems: data.totalItems,
       itemsReceived: data.items?.length || 0

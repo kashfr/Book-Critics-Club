@@ -25,6 +25,16 @@ const nextConfig = {
         hostname: "covers.openlibrary.org",
         pathname: "/b/**",
       },
+      {
+        protocol: "https",
+        hostname: "prodimage.images-bn.com",
+        pathname: "/pimages/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images-na.ssl-images-amazon.com",
+        pathname: "/images/P/**",
+      },
     ],
   },
   env: {

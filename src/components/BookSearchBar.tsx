@@ -113,7 +113,12 @@ export default function BookSearchBar({
   }, [resetTranscript]);
 
   const containerClasses =
-    position === "center" ? "w-full max-w-xl mx-auto" : "w-full max-w-xl";
+    position === "center" 
+      ? "w-full max-w-xl mx-auto px-4" 
+      : "w-full sm:max-w-xs md:max-w-md lg:max-w-xl";
+
+  // Determine if we're in header position for smaller mobile sizing
+  const isHeader = position === "header";
 
   // Using the new approach that works flawlessly
   return (
@@ -123,16 +128,16 @@ export default function BookSearchBar({
           listening ? "listening" : ""
         } transition-all duration-200`}
         style={{
-          backgroundColor: "#fff",
-          border: `1px solid ${listening ? "#f87171" : "#dfe1e5"}`,
-          borderRadius: "24px",
+          backgroundColor: isHeader ? "rgba(255, 255, 255, 0.1)" : "#fff",
+          border: `1px solid ${listening ? "#f87171" : isHeader ? "rgba(255, 255, 255, 0.2)" : "#dfe1e5"}`,
+          borderRadius: "9999px", // Fully rounded pill shape
           boxShadow: listening
             ? "0 0 15px rgba(239,68,68,0.5)"
             : isFocused || isHovered
             ? "0 2px 8px rgba(32, 33, 36, 0.3)"
             : "0 1px 4px rgba(32, 33, 36, 0.2)",
-          height: "46px",
-          padding: "0 16px",
+          height: isHeader ? "40px" : "46px",
+          padding: isHeader ? "0 12px" : "0 20px",
           transition: "all 0.2s ease",
         }}
         onMouseEnter={() => {
@@ -190,7 +195,7 @@ export default function BookSearchBar({
             backgroundColor: "transparent",
             height: "100%",
             padding: 0,
-            color: "#202124",
+            color: isHeader ? "#ffffff" : "#202124",
             lineHeight: "46px",
             filter: "none",
           }}
